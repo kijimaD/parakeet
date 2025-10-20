@@ -15,11 +15,13 @@ type ValidateOptions struct {
 
 // ValidateResult はバリデーション結果を表す
 type ValidateResult struct {
-	TotalFiles       int      // 総ファイル数
-	ValidFiles       int      // 有効なファイル数
-	InvalidFiles     []string // 無効なファイル名のリスト
-	DuplicateFiles   []string // 重複するタイムスタンプを持つファイルのリスト
-	HasDuplicates    bool     // 重複があるかどうか
+	TotalFiles        int                 // 総ファイル数
+	ValidFiles        int                 // 有効なファイル数
+	InvalidFiles      []string            // 無効なファイル名のリスト
+	DuplicateFiles    []string            // 重複するタイムスタンプを持つファイルのリスト
+	HasDuplicates     bool                // 重複があるかどうか
+	UndefinedTagFiles map[string][]string // 未定義タグを持つファイル: ファイル名 -> 未定義タグリスト
+	HasUndefinedTags  bool                // 未定義タグがあるかどうか
 }
 
 // ValidateFileNames はディレクトリ内のファイル名をバリデーションする
@@ -36,12 +38,28 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 	}
 
 	result := &ValidateResult{
-		InvalidFiles:   []string{},
-		DuplicateFiles: []string{},
+		InvalidFiles:      []string{},
+		DuplicateFiles:    []string{},
+		UndefinedTagFiles: make(map[string][]string),
 	}
 
 	// タイムスタンプの出現回数を記録
 	timestampMap := make(map[string][]string)
+
+	// tag.tomlを読み込む（targetDir内に存在する場合）
+	tomlPath := filepath.Join(targetDir, "tag.toml")
+	tagDefs, err := LoadTagsFromTOML(tomlPath)
+	if err != nil {
+		// エラーがあっても続行（tag.tomlがない場合はタグチェックをスキップ）
+		tagDefs = []TagDefinition{}
+	}
+
+	// 定義済みタグのセットを作成
+	validTags := make(map[string]bool)
+	for _, tagDef := range tagDefs {
+		validTags[tagDef.Key] = true
+	}
+	hasTagDefinitions := len(validTags) > 0
 
 	for _, entry := range entries {
 		// ディレクトリはスキップ
@@ -65,6 +83,20 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 			// タイムスタンプを抽出して重複チェック
 			if components, err := ParseFileName(fileName); err == nil {
 				timestampMap[components.Timestamp] = append(timestampMap[components.Timestamp], fileName)
+
+				// タグの定義チェック（tag.tomlが存在する場合のみ）
+				if hasTagDefinitions && len(components.Tags) > 0 {
+					var undefinedTags []string
+					for _, tag := range components.Tags {
+						if !validTags[tag] {
+							undefinedTags = append(undefinedTags, tag)
+						}
+					}
+					if len(undefinedTags) > 0 {
+						result.HasUndefinedTags = true
+						result.UndefinedTagFiles[fileName] = undefinedTags
+					}
+				}
 			}
 		} else {
 			result.InvalidFiles = append(result.InvalidFiles, fileName)
@@ -83,14 +115,22 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 		}
 	}
 
+	// 未定義タグの出力
+	if result.HasUndefinedTags {
+		for fileName, tags := range result.UndefinedTagFiles {
+			_, _ = fmt.Fprintf(opts.Writer, "⚠ %s (undefined tags: %v)\n", fileName, tags)
+		}
+	}
+
 	// サマリーを出力
 	_, _ = fmt.Fprintf(opts.Writer, "\nValidation Summary:\n")
 	_, _ = fmt.Fprintf(opts.Writer, "  Total files: %d\n", result.TotalFiles)
 	_, _ = fmt.Fprintf(opts.Writer, "  Valid: %d\n", result.ValidFiles)
 	_, _ = fmt.Fprintf(opts.Writer, "  Invalid: %d\n", len(result.InvalidFiles))
 	_, _ = fmt.Fprintf(opts.Writer, "  Duplicates: %d\n", len(result.DuplicateFiles))
+	_, _ = fmt.Fprintf(opts.Writer, "  Undefined tags: %d\n", len(result.UndefinedTagFiles))
 
-	if len(result.InvalidFiles) == 0 && !result.HasDuplicates {
+	if len(result.InvalidFiles) == 0 && !result.HasDuplicates && !result.HasUndefinedTags {
 		_, _ = fmt.Fprintf(opts.Writer, "\n✓ All files are properly formatted!\n")
 	} else {
 		if len(result.InvalidFiles) > 0 {
@@ -98,6 +138,9 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 		}
 		if result.HasDuplicates {
 			_, _ = fmt.Fprintf(opts.Writer, "\n⚠ Some files have duplicate timestamps.\n")
+		}
+		if result.HasUndefinedTags {
+			_, _ = fmt.Fprintf(opts.Writer, "\n⚠ Some files have undefined tags.\n")
 		}
 	}
 

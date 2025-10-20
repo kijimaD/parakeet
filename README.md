@@ -18,8 +18,10 @@ go run . generate . --ext pdf
 # バリデーション
 go run . validate . --ext pdf
 
-# タグ編集
-go run . tag {file名}
+# タグ編集(インタラクティブ)
+go run . tag {ID}
+# タグ編集(非インタラクティブ)
+go run . tag {ID} --set {tag名}
 
 # markdown表出力
 go run . md --ext pdf

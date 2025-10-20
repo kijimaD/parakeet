@@ -24,9 +24,9 @@ func TestValidateFileNames(t *testing.T) {
 		{
 			name: "all files valid",
 			setupFiles: []string{
-				"20250903T083109--TCPIP入門__network_infra.pdf",
+				"20250903T083109--TCPIP入門.pdf",
 				"20250903T083110--sample.txt",
-				"20250903T083111--document__important.doc",
+				"20250903T083111--document.doc",
 			},
 			expectedValid:     3,
 			expectedInvalid:   0,
@@ -324,7 +324,7 @@ func TestValidateFileNames_AllValidOutput(t *testing.T) {
 	validFiles := []string{
 		"20250903T083109--document.pdf",
 		"20250903T083110--image.jpg",
-		"20250903T083111--notes__tag1_tag2.md",
+		"20250903T083111--notes.md",
 	}
 
 	for _, name := range validFiles {
@@ -488,4 +488,117 @@ func TestValidateFileNames_NoDuplicates(t *testing.T) {
 	output := buf.String()
 	assert.Contains(t, output, "All files are properly formatted", "Should show success message")
 	assert.NotContains(t, output, "⚠", "Should not show warnings")
+}
+
+func TestValidateFileNames_WithUndefinedTags(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-validate-undefined-tags-*")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
+
+	// Create tag.toml with defined tags
+	tomlContent := `[[tag]]
+key = "network"
+desc = "Network related"
+
+[[tag]]
+key = "infra"
+desc = "Infrastructure"
+
+[[tag]]
+key = "security"
+desc = "Security related"
+`
+	tomlPath := filepath.Join(tmpDir, "tag.toml")
+	err = os.WriteFile(tomlPath, []byte(tomlContent), 0644)
+	require.NoError(t, err)
+
+	// Create files with valid and invalid tags
+	testFiles := []string{
+		"20250903T083109--file1__network_infra.txt",      // 定義済みタグ
+		"20250903T083110--file2__undefined_tag.pdf",      // 未定義タグ
+		"20250903T083111--file3__security.doc",           // 定義済みタグ
+		"20250903T083112--file4__network_invalid.jpg",   // 1つ定義済み、1つ未定義
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Run validation
+	buf := &bytes.Buffer{}
+	opts := ValidateOptions{
+		Writer:     buf,
+		Extensions: nil,
+	}
+
+	result, err := ValidateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Check result (tag.toml is counted as invalid file)
+	assert.Equal(t, 5, result.TotalFiles, "Should count 4 test files + tag.toml")
+	assert.Equal(t, 4, result.ValidFiles)
+	assert.Equal(t, 1, len(result.InvalidFiles), "tag.toml is invalid format")
+	assert.True(t, result.HasUndefinedTags, "Should detect undefined tags")
+	assert.Equal(t, 2, len(result.UndefinedTagFiles), "Should have 2 files with undefined tags")
+
+	// Check specific undefined tags
+	assert.Contains(t, result.UndefinedTagFiles, "20250903T083110--file2__undefined_tag.pdf")
+	assert.Contains(t, result.UndefinedTagFiles["20250903T083110--file2__undefined_tag.pdf"], "undefined")
+	assert.Contains(t, result.UndefinedTagFiles["20250903T083110--file2__undefined_tag.pdf"], "tag")
+
+	assert.Contains(t, result.UndefinedTagFiles, "20250903T083112--file4__network_invalid.jpg")
+	assert.Contains(t, result.UndefinedTagFiles["20250903T083112--file4__network_invalid.jpg"], "invalid")
+	assert.NotContains(t, result.UndefinedTagFiles["20250903T083112--file4__network_invalid.jpg"], "network")
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "⚠", "Should show warning for undefined tags")
+	assert.Contains(t, output, "undefined tags", "Should mention undefined tags")
+	assert.Contains(t, output, "Undefined tags: 2", "Should show undefined tag count")
+}
+
+func TestValidateFileNames_NoTagToml(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-validate-no-toml-*")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
+
+	// Create files with any tags (no tag.toml in tmpDir)
+	testFiles := []string{
+		"20250903T083109--file1__anytag.txt",
+		"20250903T083110--file2__random_tags.pdf",
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Run validation
+	buf := &bytes.Buffer{}
+	opts := ValidateOptions{
+		Writer:     buf,
+		Extensions: nil,
+	}
+
+	result, err := ValidateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Check result - should not check tags if tag.toml doesn't exist
+	assert.Equal(t, 2, result.TotalFiles)
+	assert.Equal(t, 2, result.ValidFiles)
+	assert.False(t, result.HasUndefinedTags, "Should not check tags when tag.toml doesn't exist")
+	assert.Equal(t, 0, len(result.UndefinedTagFiles), "Should have 0 files with undefined tags")
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "All files are properly formatted", "Should show success message")
 }

@@ -182,11 +182,11 @@ func TestIntegration_MixedScenario(t *testing.T) {
 
 	// Create a mix of formatted and unformatted files
 	files := map[string]bool{
-		"20250903T083109--already-formatted.pdf":  true,
-		"unformatted-file.pdf":                    false,
-		"20250903T083110--another-valid__tag.txt": true,
-		"invalid-name.txt":                        false,
-		"20250903T083111--image.jpg":              true,
+		"20250903T083109--already-formatted.pdf": true,
+		"unformatted-file.pdf":                   false,
+		"20250903T083110--another-valid.txt":     true,
+		"invalid-name.txt":                       false,
+		"20250903T083111--image.jpg":             true,
 	}
 
 	for name := range files {

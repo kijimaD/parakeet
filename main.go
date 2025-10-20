@@ -73,8 +73,8 @@ func main() {
 						return err
 					}
 
-					// 無効なファイルがある場合は終了コード1を返す
-					if len(result.InvalidFiles) > 0 {
+					// 無効なファイル、重複、未定義タグがある場合は終了コード1を返す
+					if len(result.InvalidFiles) > 0 || result.HasDuplicates || result.HasUndefinedTags {
 						os.Exit(1)
 					}
 
