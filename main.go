@@ -109,24 +109,46 @@ func main() {
 			{
 				Name:      "tag",
 				Usage:     "ファイルのタグをインタラクティブに編集する",
-				ArgsUsage: "<file_path>",
+				ArgsUsage: "<id>",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "show",
 						Aliases: []string{"s"},
 						Usage:   "現在のタグを表示する",
 					},
+					&cli.StringSliceFlag{
+						Name:    "set",
+						Aliases: []string{"t"},
+						Usage:   "タグを直接指定する（カンマ区切り、例: --set tag1 --set tag2）",
+					},
 				},
 				Action: func(_ context.Context, cmd *cli.Command) error {
-					// ファイルパスを取得
+					// IDを取得
 					if cmd.Args().Len() == 0 {
-						return fmt.Errorf("file path is required")
+						return fmt.Errorf("ID is required")
 					}
-					filePath := cmd.Args().Get(0)
+					id := cmd.Args().Get(0)
+
+					// IDでファイルを検索
+					filePath, err := FindFileByID(".", id)
+					if err != nil {
+						return fmt.Errorf("file not found: %w", err)
+					}
 
 					// --show フラグの場合はタグを表示
 					if cmd.Bool("show") {
 						return ShowTags(filePath, os.Stdout)
+					}
+
+					// --set フラグが指定された場合は非インタラクティブモード
+					if setTags := cmd.StringSlice("set"); len(setTags) > 0 {
+						// tag.tomlに対してバリデーション
+						if err := ValidateTags(setTags, "tag.toml"); err != nil {
+							return err
+						}
+
+						// タグを設定
+						return SetTags(filePath, setTags, os.Stdout)
 					}
 
 					// デフォルトはインタラクティブモード

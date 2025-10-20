@@ -534,3 +534,98 @@ func TestFormatDisplay(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateTags(t *testing.T) {
+	t.Parallel()
+	// Create temporary TOML file
+	tmpFile, err := os.CreateTemp("", "tags-*.toml")
+	require.NoError(t, err)
+
+	// Use t.Cleanup instead of defer to ensure file is removed after all subtests
+	t.Cleanup(func() { _ = os.Remove(tmpFile.Name()) })
+
+	// Write tag definitions
+	content := `[[tag]]
+key = "infra"
+desc = "インフラ関連"
+
+[[tag]]
+key = "network"
+desc = "ネットワーク関連"
+
+[[tag]]
+key = "urgent"
+desc = "緊急"
+`
+	_, err = tmpFile.WriteString(content)
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+
+	tests := []struct {
+		name      string
+		tags      []string
+		wantError bool
+		errorText string
+	}{
+		{
+			name:      "valid tags",
+			tags:      []string{"infra", "network"},
+			wantError: false,
+		},
+		{
+			name:      "single valid tag",
+			tags:      []string{"urgent"},
+			wantError: false,
+		},
+		{
+			name:      "invalid tag",
+			tags:      []string{"invalid"},
+			wantError: true,
+			errorText: "undefined tags in tag.toml: invalid",
+		},
+		{
+			name:      "mixed valid and invalid",
+			tags:      []string{"infra", "invalid1", "network", "invalid2"},
+			wantError: true,
+			errorText: "undefined tags in tag.toml",
+		},
+		{
+			name:      "empty tags",
+			tags:      []string{},
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := ValidateTags(tt.tags, tmpFile.Name())
+			if tt.wantError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorText)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateTags_NonExistentTOML(t *testing.T) {
+	t.Parallel()
+	err := ValidateTags([]string{"tag1"}, "/non/existent/tag.toml")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "tag.toml not found or empty")
+}
+
+func TestValidateTags_EmptyTOML(t *testing.T) {
+	t.Parallel()
+	// Create empty TOML file
+	tmpFile, err := os.CreateTemp("", "tags-empty-*.toml")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.Remove(tmpFile.Name()) })
+	_ = tmpFile.Close()
+
+	err = ValidateTags([]string{"tag1"}, tmpFile.Name())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "tag.toml not found or empty")
+}

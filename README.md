@@ -20,6 +20,9 @@ go run . validate . --ext pdf
 
 # タグ編集
 go run . tag {file名}
+
+# markdown表出力
+go run . md --ext pdf
 ```
 
 ```

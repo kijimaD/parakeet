@@ -105,6 +105,41 @@ func LoadTagsFromTOML(filePath string) ([]TagDefinition, error) {
 	return config.Tag, nil
 }
 
+// ValidateTags は指定されたタグがtag.tomlに定義されているかチェックする
+// tag.tomlが存在しない場合はエラーを返す
+func ValidateTags(tags []string, tomlPath string) error {
+	// tag.tomlを読み込む
+	tagDefs, err := LoadTagsFromTOML(tomlPath)
+	if err != nil {
+		return err
+	}
+
+	// tag.tomlが存在しない（空のスライス）場合はエラー
+	if len(tagDefs) == 0 {
+		return fmt.Errorf("tag.toml not found or empty at: %s", tomlPath)
+	}
+
+	// 定義されたタグのセットを作成
+	validTags := make(map[string]bool)
+	for _, tagDef := range tagDefs {
+		validTags[tagDef.Key] = true
+	}
+
+	// 各タグが定義されているかチェック
+	var invalidTags []string
+	for _, tag := range tags {
+		if !validTags[tag] {
+			invalidTags = append(invalidTags, tag)
+		}
+	}
+
+	if len(invalidTags) > 0 {
+		return fmt.Errorf("undefined tags in tag.toml: %s", strings.Join(invalidTags, ", "))
+	}
+
+	return nil
+}
+
 // promptForTags はインタラクティブにタグを選択・編集する
 func promptForTags(currentTags []string) ([]string, error) {
 	// 既存のタグをすべて選択状態にする

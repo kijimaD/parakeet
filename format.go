@@ -72,6 +72,40 @@ func CollectExistingTimestamps(dirPath string) (map[string]bool, error) {
 	return timestamps, nil
 }
 
+// FindFileByID はディレクトリ内からIDに一致するファイルを検索する
+// 複数のファイルが見つかった場合はエラーを返す
+func FindFileByID(dirPath, id string) (string, error) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	var matchedFiles []string
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// フォーマット済みファイルからタイムスタンプを抽出
+		if components, err := ParseFileName(entry.Name()); err == nil {
+			if components.Timestamp == id {
+				matchedFiles = append(matchedFiles, filepath.Join(dirPath, entry.Name()))
+			}
+		}
+	}
+
+	if len(matchedFiles) == 0 {
+		return "", fmt.Errorf("no file found with ID: %s", id)
+	}
+
+	if len(matchedFiles) > 1 {
+		return "", fmt.Errorf("multiple files found with ID %s:\n%s", id, strings.Join(matchedFiles, "\n"))
+	}
+
+	return matchedFiles[0], nil
+}
+
 // FormatFileName は構成要素からフォーマット済みファイル名を生成する
 // フォーマット: {timestamp}--{comment}__{tag1}_{tag2}.{extension}
 func (c FileNameComponents) FormatFileName() string {

@@ -407,3 +407,92 @@ func TestCollectExistingTimestamps_EmptyDirectory(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, timestamps, "Should return empty map for empty directory")
 }
+
+func TestFindFileByID(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-findbyid-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create test files
+	testFiles := []string{
+		"20250903T083109--file1.txt",
+		"20250903T083110--file2.pdf",
+		"20250903T083111--file3.doc",
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("test"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Test finding existing file
+	foundPath, err := FindFileByID(tmpDir, "20250903T083110")
+	require.NoError(t, err)
+	assert.Contains(t, foundPath, "20250903T083110--file2.pdf")
+
+	// Test file not found
+	_, err = FindFileByID(tmpDir, "20250903T999999")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no file found")
+}
+
+func TestFindFileByID_MultipleMatches(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-findbyid-dup-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create files with duplicate IDs
+	testFiles := []string{
+		"20250903T083109--file1.txt",
+		"20250903T083109--file2.pdf",
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("test"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Test multiple matches
+	_, err = FindFileByID(tmpDir, "20250903T083109")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "multiple files found")
+}
+
+func TestFindFileByID_NonExistentDirectory(t *testing.T) {
+	t.Parallel()
+	_, err := FindFileByID("/non/existent/directory", "20250903T083109")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read directory")
+}
+
+func TestFindFileByID_SkipsInvalidFiles(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-findbyid-skip-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create test files including invalid ones
+	testFiles := []string{
+		"20250903T083109--valid.txt",
+		"invalid-file.txt",
+		"another-invalid.pdf",
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("test"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Test finding valid file
+	foundPath, err := FindFileByID(tmpDir, "20250903T083109")
+	require.NoError(t, err)
+	assert.Contains(t, foundPath, "20250903T083109--valid.txt")
+}
