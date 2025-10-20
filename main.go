@@ -142,8 +142,8 @@ func main() {
 
 					// --set フラグが指定された場合は非インタラクティブモード
 					if setTags := cmd.StringSlice("set"); len(setTags) > 0 {
-						// tag.tomlに対してバリデーション
-						if err := ValidateTags(setTags, "tag.toml"); err != nil {
+						// tags.tomlに対してバリデーション
+						if err := ValidateTags(setTags, TagsFileName); err != nil {
 							return err
 						}
 

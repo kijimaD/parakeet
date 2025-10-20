@@ -581,13 +581,13 @@ desc = "緊急"
 			name:      "invalid tag",
 			tags:      []string{"invalid"},
 			wantError: true,
-			errorText: "undefined tags in tag.toml: invalid",
+			errorText: "undefined tags in tags.toml: invalid",
 		},
 		{
 			name:      "mixed valid and invalid",
 			tags:      []string{"infra", "invalid1", "network", "invalid2"},
 			wantError: true,
-			errorText: "undefined tags in tag.toml",
+			errorText: "undefined tags in tags.toml",
 		},
 		{
 			name:      "empty tags",
@@ -612,9 +612,9 @@ desc = "緊急"
 
 func TestValidateTags_NonExistentTOML(t *testing.T) {
 	t.Parallel()
-	err := ValidateTags([]string{"tag1"}, "/non/existent/tag.toml")
+	err := ValidateTags([]string{"tag1"}, "/non/existent/tags.toml")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "tag.toml not found or empty")
+	assert.Contains(t, err.Error(), "tags.toml not found or empty")
 }
 
 func TestValidateTags_EmptyTOML(t *testing.T) {
@@ -627,5 +627,5 @@ func TestValidateTags_EmptyTOML(t *testing.T) {
 
 	err = ValidateTags([]string{"tag1"}, tmpFile.Name())
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "tag.toml not found or empty")
+	assert.Contains(t, err.Error(), "tags.toml not found or empty")
 }

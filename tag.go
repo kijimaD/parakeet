@@ -12,6 +12,11 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+const (
+	// TagsFileName はタグ定義ファイルのファイル名
+	TagsFileName = "tags.toml"
+)
+
 // TagOptions はタグ編集操作のオプションを表す
 type TagOptions struct {
 	Interactive bool      // インタラクティブモード（survey を使用）
@@ -105,18 +110,18 @@ func LoadTagsFromTOML(filePath string) ([]TagDefinition, error) {
 	return config.Tag, nil
 }
 
-// ValidateTags は指定されたタグがtag.tomlに定義されているかチェックする
-// tag.tomlが存在しない場合はエラーを返す
+// ValidateTags は指定されたタグがtags.tomlに定義されているかチェックする
+// tags.tomlが存在しない場合はエラーを返す
 func ValidateTags(tags []string, tomlPath string) error {
-	// tag.tomlを読み込む
+	// tags.tomlを読み込む
 	tagDefs, err := LoadTagsFromTOML(tomlPath)
 	if err != nil {
 		return err
 	}
 
-	// tag.tomlが存在しない（空のスライス）場合はエラー
+	// tags.tomlが存在しない（空のスライス）場合はエラー
 	if len(tagDefs) == 0 {
-		return fmt.Errorf("tag.toml not found or empty at: %s", tomlPath)
+		return fmt.Errorf("tags.toml not found or empty at: %s", tomlPath)
 	}
 
 	// 定義されたタグのセットを作成
@@ -134,7 +139,7 @@ func ValidateTags(tags []string, tomlPath string) error {
 	}
 
 	if len(invalidTags) > 0 {
-		return fmt.Errorf("undefined tags in tag.toml: %s", strings.Join(invalidTags, ", "))
+		return fmt.Errorf("undefined tags in tags.toml: %s", strings.Join(invalidTags, ", "))
 	}
 
 	return nil
@@ -151,7 +156,7 @@ func promptForTags(currentTags []string) ([]string, error) {
 
 	// TOMLファイルからタグ定義を読み込む
 	// デフォルトは ./tags.toml
-	tagsFilePath := "tags.toml"
+	tagsFilePath := TagsFileName
 	tagDefs, err := LoadTagsFromTOML(tagsFilePath)
 	if err != nil {
 		// エラーがあってもデフォルトのタグリストで続行

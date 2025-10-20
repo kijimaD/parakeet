@@ -497,7 +497,7 @@ func TestValidateFileNames_WithUndefinedTags(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
-	// Create tag.toml with defined tags
+	// Create tags.toml with defined tags
 	tomlContent := `[[tag]]
 key = "network"
 desc = "Network related"
@@ -510,7 +510,7 @@ desc = "Infrastructure"
 key = "security"
 desc = "Security related"
 `
-	tomlPath := filepath.Join(tmpDir, "tag.toml")
+	tomlPath := filepath.Join(tmpDir, "tags.toml")
 	err = os.WriteFile(tomlPath, []byte(tomlContent), 0644)
 	require.NoError(t, err)
 
@@ -539,10 +539,10 @@ desc = "Security related"
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// Check result (tag.toml is counted as invalid file)
-	assert.Equal(t, 5, result.TotalFiles, "Should count 4 test files + tag.toml")
+	// Check result (tags.toml is counted as invalid file)
+	assert.Equal(t, 5, result.TotalFiles, "Should count 4 test files + tags.toml")
 	assert.Equal(t, 4, result.ValidFiles)
-	assert.Equal(t, 1, len(result.InvalidFiles), "tag.toml is invalid format")
+	assert.Equal(t, 1, len(result.InvalidFiles), "tags.toml is invalid format")
 	assert.True(t, result.HasUndefinedTags, "Should detect undefined tags")
 	assert.Equal(t, 2, len(result.UndefinedTagFiles), "Should have 2 files with undefined tags")
 
@@ -569,7 +569,7 @@ func TestValidateFileNames_NoTagToml(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
-	// Create files with any tags (no tag.toml in tmpDir)
+	// Create files with any tags (no tags.toml in tmpDir)
 	testFiles := []string{
 		"20250903T083109--file1__anytag.txt",
 		"20250903T083110--file2__random_tags.pdf",
@@ -592,10 +592,10 @@ func TestValidateFileNames_NoTagToml(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	// Check result - should not check tags if tag.toml doesn't exist
+	// Check result - should not check tags if tags.toml doesn't exist
 	assert.Equal(t, 2, result.TotalFiles)
 	assert.Equal(t, 2, result.ValidFiles)
-	assert.False(t, result.HasUndefinedTags, "Should not check tags when tag.toml doesn't exist")
+	assert.False(t, result.HasUndefinedTags, "Should not check tags when tags.toml doesn't exist")
 	assert.Equal(t, 0, len(result.UndefinedTagFiles), "Should have 0 files with undefined tags")
 
 	// Check output

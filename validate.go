@@ -46,11 +46,11 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 	// タイムスタンプの出現回数を記録
 	timestampMap := make(map[string][]string)
 
-	// tag.tomlを読み込む（targetDir内に存在する場合）
-	tomlPath := filepath.Join(targetDir, "tag.toml")
+	// tags.tomlを読み込む（targetDir内に存在する場合）
+	tomlPath := filepath.Join(targetDir, TagsFileName)
 	tagDefs, err := LoadTagsFromTOML(tomlPath)
 	if err != nil {
-		// エラーがあっても続行（tag.tomlがない場合はタグチェックをスキップ）
+		// エラーがあっても続行（tags.tomlがない場合はタグチェックをスキップ）
 		tagDefs = []TagDefinition{}
 	}
 
@@ -84,7 +84,7 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 			if components, err := ParseFileName(fileName); err == nil {
 				timestampMap[components.Timestamp] = append(timestampMap[components.Timestamp], fileName)
 
-				// タグの定義チェック（tag.tomlが存在する場合のみ）
+				// タグの定義チェック（tags.tomlが存在する場合のみ）
 				if hasTagDefinitions && len(components.Tags) > 0 {
 					var undefinedTags []string
 					for _, tag := range components.Tags {
