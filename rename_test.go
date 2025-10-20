@@ -27,9 +27,10 @@ func TestGenerateFileNames(t *testing.T) {
 				"document.doc",
 			},
 			opts: RenameOptions{
-				DryRun:  false,
-				Verbose: false,
-				Writer:  &bytes.Buffer{},
+				DryRun:     false,
+				Verbose:    false,
+				Writer:     &bytes.Buffer{},
+				Extensions: nil,
 			},
 			expectError:   false,
 			expectRenamed: 3,
@@ -42,9 +43,10 @@ func TestGenerateFileNames(t *testing.T) {
 				"20250903T083109--already-formatted__tag1.pdf",
 			},
 			opts: RenameOptions{
-				DryRun:  false,
-				Verbose: true,
-				Writer:  &bytes.Buffer{},
+				DryRun:     false,
+				Verbose:    true,
+				Writer:     &bytes.Buffer{},
+				Extensions: nil,
 			},
 			expectError:   false,
 			expectRenamed: 1,
@@ -57,9 +59,10 @@ func TestGenerateFileNames(t *testing.T) {
 				"file2.pdf",
 			},
 			opts: RenameOptions{
-				DryRun:  true,
-				Verbose: false,
-				Writer:  &bytes.Buffer{},
+				DryRun:     true,
+				Verbose:    false,
+				Writer:     &bytes.Buffer{},
+				Extensions: nil,
 			},
 			expectError:   false,
 			expectRenamed: 2,
@@ -74,9 +77,10 @@ func TestGenerateFileNames(t *testing.T) {
 				"noextension",
 			},
 			opts: RenameOptions{
-				DryRun:  false,
-				Verbose: false,
-				Writer:  &bytes.Buffer{},
+				DryRun:     false,
+				Verbose:    false,
+				Writer:     &bytes.Buffer{},
+				Extensions: nil,
 			},
 			expectError:   false,
 			expectRenamed: 4,
@@ -151,9 +155,10 @@ func TestGenerateFileNames(t *testing.T) {
 
 func TestGenerateFileNames_NonExistentDirectory(t *testing.T) {
 	opts := RenameOptions{
-		DryRun:  false,
-		Verbose: false,
-		Writer:  &bytes.Buffer{},
+		DryRun:     false,
+		Verbose:    false,
+		Writer:     &bytes.Buffer{},
+		Extensions: nil,
 	}
 
 	err := GenerateFileNames("/non/existent/directory", opts)
@@ -168,9 +173,10 @@ func TestGenerateFileNames_EmptyDirectory(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	opts := RenameOptions{
-		DryRun:  false,
-		Verbose: false,
-		Writer:  &bytes.Buffer{},
+		DryRun:     false,
+		Verbose:    false,
+		Writer:     &bytes.Buffer{},
+		Extensions: nil,
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -199,9 +205,10 @@ func TestGenerateFileNames_SkipsDirectories(t *testing.T) {
 	require.NoError(t, err)
 
 	opts := RenameOptions{
-		DryRun:  false,
-		Verbose: false,
-		Writer:  &bytes.Buffer{},
+		DryRun:     false,
+		Verbose:    false,
+		Writer:     &bytes.Buffer{},
+		Extensions: nil,
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -254,9 +261,10 @@ func TestGenerateFileNames_PreservesExtension(t *testing.T) {
 	}
 
 	opts := RenameOptions{
-		DryRun:  false,
-		Verbose: false,
-		Writer:  &bytes.Buffer{},
+		DryRun:     false,
+		Verbose:    false,
+		Writer:     &bytes.Buffer{},
+		Extensions: nil,
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -282,4 +290,137 @@ func TestGenerateFileNames_PreservesExtension(t *testing.T) {
 		}
 		assert.True(t, found, "Extension %s should match one of the original files", ext)
 	}
+}
+
+func TestGenerateFileNames_WithExtensionFilter(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-test-ext-filter-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create files with various extensions
+	testFiles := []struct {
+		name          string
+		shouldProcess bool
+	}{
+		{"file1.txt", true},
+		{"file2.pdf", true},
+		{"file3.md", false},
+		{"file4.jpg", false},
+		{"file5.txt", true},
+	}
+
+	for _, tf := range testFiles {
+		filePath := filepath.Join(tmpDir, tf.name)
+		err := os.WriteFile(filePath, []byte("test content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Test with extension filter
+	buf := &bytes.Buffer{}
+	opts := RenameOptions{
+		DryRun:     true,
+		Verbose:    false,
+		Writer:     buf,
+		Extensions: []string{"txt", "pdf"},
+	}
+
+	err = GenerateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "file1.txt", "Should process txt file")
+	assert.Contains(t, output, "file2.pdf", "Should process pdf file")
+	assert.Contains(t, output, "file5.txt", "Should process txt file")
+	assert.NotContains(t, output, "file3.md", "Should not process md file")
+	assert.NotContains(t, output, "file4.jpg", "Should not process jpg file")
+	assert.Contains(t, output, "Processed: 3", "Should process 3 files")
+	assert.Contains(t, output, "Skipped: 0", "Should skip 0 files")
+}
+
+func TestGenerateFileNames_WithVerboseOutput(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-test-verbose-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create test files
+	err = os.WriteFile(filepath.Join(tmpDir, "unformatted.txt"), []byte("test"), 0644)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(tmpDir, "20250903T083109--already-formatted.txt"), []byte("test"), 0644)
+	require.NoError(t, err)
+
+	// Test with verbose output
+	buf := &bytes.Buffer{}
+	opts := RenameOptions{
+		DryRun:     false,
+		Verbose:    true,
+		Writer:     buf,
+		Extensions: nil,
+	}
+
+	err = GenerateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "Renamed:", "Should show renamed file in verbose mode")
+	assert.Contains(t, output, "Skipped (already formatted):", "Should show skipped file in verbose mode")
+	assert.Contains(t, output, "unformatted.txt", "Should mention original filename")
+	assert.Contains(t, output, "20250903T083109--already-formatted.txt", "Should mention already formatted file")
+}
+
+func TestGenerateFileNames_ActualRename(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-test-actual-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create test files
+	originalFiles := []string{
+		"document.pdf",
+		"image.jpg",
+		"notes.txt",
+	}
+
+	for _, name := range originalFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("test content for "+name), 0644)
+		require.NoError(t, err)
+	}
+
+	// Perform actual rename
+	buf := &bytes.Buffer{}
+	opts := RenameOptions{
+		DryRun:     false,
+		Verbose:    false,
+		Writer:     buf,
+		Extensions: nil,
+	}
+
+	err = GenerateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+
+	// Verify files were actually renamed
+	entries, err := os.ReadDir(tmpDir)
+	require.NoError(t, err)
+	require.Len(t, entries, 3, "Should have 3 files")
+
+	// Check all files are now formatted
+	for _, entry := range entries {
+		assert.True(t, IsFormatted(entry.Name()), "File %s should be formatted", entry.Name())
+	}
+
+	// Verify file contents were preserved
+	for _, entry := range entries {
+		content, err := os.ReadFile(filepath.Join(tmpDir, entry.Name()))
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "test content for", "File content should be preserved")
+	}
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "Processed: 3", "Should process 3 files")
+	assert.Contains(t, output, "Skipped: 0", "Should skip 0 files")
 }

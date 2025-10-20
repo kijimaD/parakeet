@@ -88,3 +88,26 @@ func IsFormatted(filename string) bool {
 	_, err := ParseFileName(filename)
 	return err == nil
 }
+
+// MatchesExtensions はファイル名が指定された拡張子のいずれかに一致するかチェックする
+// extensions が空の場合は常に true を返す
+func MatchesExtensions(filename string, extensions []string) bool {
+	// 拡張子指定がない場合はすべて対象
+	if len(extensions) == 0 {
+		return true
+	}
+
+	ext := filepath.Ext(filename)
+	if ext != "" {
+		ext = ext[1:] // 先頭のドットを削除
+	}
+
+	// 拡張子が一致するかチェック
+	for _, targetExt := range extensions {
+		if strings.EqualFold(ext, targetExt) {
+			return true
+		}
+	}
+
+	return false
+}

@@ -235,3 +235,74 @@ func TestFormatParseRoundTrip(t *testing.T) {
 	assert.Equal(t, original.Extension, parsed.Extension)
 	assert.Equal(t, original.Tags, parsed.Tags)
 }
+
+func TestMatchesExtensions(t *testing.T) {
+	tests := []struct {
+		name       string
+		filename   string
+		extensions []string
+		expected   bool
+	}{
+		{
+			name:       "no extensions filter - match all",
+			filename:   "test.txt",
+			extensions: []string{},
+			expected:   true,
+		},
+		{
+			name:       "nil extensions filter - match all",
+			filename:   "test.pdf",
+			extensions: nil,
+			expected:   true,
+		},
+		{
+			name:       "exact match",
+			filename:   "test.pdf",
+			extensions: []string{"pdf"},
+			expected:   true,
+		},
+		{
+			name:       "case insensitive match",
+			filename:   "test.PDF",
+			extensions: []string{"pdf"},
+			expected:   true,
+		},
+		{
+			name:       "multiple extensions - first match",
+			filename:   "test.txt",
+			extensions: []string{"txt", "pdf", "md"},
+			expected:   true,
+		},
+		{
+			name:       "multiple extensions - last match",
+			filename:   "test.md",
+			extensions: []string{"txt", "pdf", "md"},
+			expected:   true,
+		},
+		{
+			name:       "no match",
+			filename:   "test.jpg",
+			extensions: []string{"txt", "pdf", "md"},
+			expected:   false,
+		},
+		{
+			name:       "no extension file - match when no ext specified",
+			filename:   "test",
+			extensions: []string{},
+			expected:   true,
+		},
+		{
+			name:       "no extension file - no match when ext specified",
+			filename:   "test",
+			extensions: []string{"txt"},
+			expected:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := MatchesExtensions(tt.filename, tt.extensions)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

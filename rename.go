@@ -10,9 +10,10 @@ import (
 
 // RenameOptions はリネーム操作のオプションを表す
 type RenameOptions struct {
-	DryRun  bool      // ドライランモード（実際にはリネームしない）
-	Verbose bool      // 詳細出力モード
-	Writer  io.Writer // 出力先
+	DryRun     bool      // ドライランモード（実際にはリネームしない）
+	Verbose    bool      // 詳細出力モード
+	Writer     io.Writer // 出力先
+	Extensions []string  // 対象拡張子（空の場合は全ファイル）
 }
 
 // GenerateFileNames はディレクトリ内のすべてのファイルにフォーマット済みファイル名を生成する
@@ -40,6 +41,11 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 
 		oldName := entry.Name()
 		oldPath := filepath.Join(targetDir, oldName)
+
+		// 拡張子フィルタリング
+		if !MatchesExtensions(oldName, opts.Extensions) {
+			continue
+		}
 
 		// すでにフォーマット済みの場合はスキップ
 		if IsFormatted(oldName) {
