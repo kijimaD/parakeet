@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,8 +10,9 @@ import (
 
 // RenameOptions はリネーム操作のオプションを表す
 type RenameOptions struct {
-	DryRun  bool // ドライランモード（実際にはリネームしない）
-	Verbose bool // 詳細出力モード
+	DryRun  bool      // ドライランモード（実際にはリネームしない）
+	Verbose bool      // 詳細出力モード
+	Writer  io.Writer // 出力先
 }
 
 // GenerateFileNames はディレクトリ内のすべてのファイルにフォーマット済みファイル名を生成する
@@ -42,7 +44,7 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 		// すでにフォーマット済みの場合はスキップ
 		if IsFormatted(oldName) {
 			if opts.Verbose {
-				fmt.Printf("Skipped (already formatted): %s\n", oldName)
+				fmt.Fprintf(opts.Writer, "Skipped (already formatted): %s\n", oldName)
 			}
 			skippedCount++
 			continue
@@ -68,20 +70,20 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 
 		// 新しいファイル名がすでに存在するかチェック
 		if _, err := os.Stat(newPath); err == nil {
-			fmt.Printf("Warning: target file already exists, skipping: %s\n", newName)
+			fmt.Fprintf(opts.Writer, "Warning: target file already exists, skipping: %s\n", newName)
 			skippedCount++
 			continue
 		}
 
 		if opts.DryRun {
-			fmt.Printf("[DRY RUN] Would rename: %s -> %s\n", oldName, newName)
+			fmt.Fprintf(opts.Writer, "[DRY RUN] Would rename: %s -> %s\n", oldName, newName)
 		} else {
 			if err := os.Rename(oldPath, newPath); err != nil {
-				fmt.Printf("Error renaming %s: %v\n", oldName, err)
+				fmt.Fprintf(opts.Writer, "Error renaming %s: %v\n", oldName, err)
 				continue
 			}
 			if opts.Verbose {
-				fmt.Printf("Renamed: %s -> %s\n", oldName, newName)
+				fmt.Fprintf(opts.Writer, "Renamed: %s -> %s\n", oldName, newName)
 			}
 		}
 
@@ -89,11 +91,11 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 	}
 
 	// サマリーを出力
-	fmt.Printf("\nSummary:\n")
-	fmt.Printf("  Processed: %d\n", processedCount)
-	fmt.Printf("  Skipped: %d\n", skippedCount)
+	fmt.Fprintf(opts.Writer, "\nSummary:\n")
+	fmt.Fprintf(opts.Writer, "  Processed: %d\n", processedCount)
+	fmt.Fprintf(opts.Writer, "  Skipped: %d\n", skippedCount)
 	if opts.DryRun {
-		fmt.Printf("  (Dry run - no files were actually renamed)\n")
+		fmt.Fprintf(opts.Writer, "  (Dry run - no files were actually renamed)\n")
 	}
 
 	return nil

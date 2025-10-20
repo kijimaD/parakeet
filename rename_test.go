@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,6 +29,7 @@ func TestGenerateFileNames(t *testing.T) {
 			opts: RenameOptions{
 				DryRun:  false,
 				Verbose: false,
+				Writer:  &bytes.Buffer{},
 			},
 			expectError:   false,
 			expectRenamed: 3,
@@ -42,6 +44,7 @@ func TestGenerateFileNames(t *testing.T) {
 			opts: RenameOptions{
 				DryRun:  false,
 				Verbose: true,
+				Writer:  &bytes.Buffer{},
 			},
 			expectError:   false,
 			expectRenamed: 1,
@@ -56,6 +59,7 @@ func TestGenerateFileNames(t *testing.T) {
 			opts: RenameOptions{
 				DryRun:  true,
 				Verbose: false,
+				Writer:  &bytes.Buffer{},
 			},
 			expectError:   false,
 			expectRenamed: 2,
@@ -72,6 +76,7 @@ func TestGenerateFileNames(t *testing.T) {
 			opts: RenameOptions{
 				DryRun:  false,
 				Verbose: false,
+				Writer:  &bytes.Buffer{},
 			},
 			expectError:   false,
 			expectRenamed: 4,
@@ -148,6 +153,7 @@ func TestGenerateFileNames_NonExistentDirectory(t *testing.T) {
 	opts := RenameOptions{
 		DryRun:  false,
 		Verbose: false,
+		Writer:  &bytes.Buffer{},
 	}
 
 	err := GenerateFileNames("/non/existent/directory", opts)
@@ -164,6 +170,7 @@ func TestGenerateFileNames_EmptyDirectory(t *testing.T) {
 	opts := RenameOptions{
 		DryRun:  false,
 		Verbose: false,
+		Writer:  &bytes.Buffer{},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -194,6 +201,7 @@ func TestGenerateFileNames_SkipsDirectories(t *testing.T) {
 	opts := RenameOptions{
 		DryRun:  false,
 		Verbose: false,
+		Writer:  &bytes.Buffer{},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -248,6 +256,7 @@ func TestGenerateFileNames_PreservesExtension(t *testing.T) {
 	opts := RenameOptions{
 		DryRun:  false,
 		Verbose: false,
+		Writer:  &bytes.Buffer{},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)

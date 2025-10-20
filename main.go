@@ -40,6 +40,7 @@ func main() {
 					opts := RenameOptions{
 						DryRun:  cmd.Bool("dry-run"),
 						Verbose: cmd.Bool("verbose"),
+						Writer:  os.Stdout,
 					}
 
 					return GenerateFileNames(targetDir, opts)
