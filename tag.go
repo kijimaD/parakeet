@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,7 +13,8 @@ import (
 
 // TagOptions はタグ編集操作のオプションを表す
 type TagOptions struct {
-	Interactive bool // インタラクティブモード（survey を使用）
+	Interactive bool      // インタラクティブモード（survey を使用）
+	Writer      io.Writer // 出力先
 }
 
 // EditTags はファイルのタグをインタラクティブに編集する
@@ -60,9 +62,9 @@ func EditTags(filePath string, opts TagOptions) error {
 				return fmt.Errorf("failed to rename file: %w", err)
 			}
 
-			fmt.Printf("✓ Renamed: %s → %s\n", fileName, newFileName)
+			fmt.Fprintf(opts.Writer, "✓ Renamed: %s → %s\n", fileName, newFileName)
 		} else {
-			fmt.Println("✓ No changes made")
+			fmt.Fprintln(opts.Writer, "✓ No changes made")
 		}
 	}
 
@@ -217,7 +219,7 @@ func tagsEqual(a, b []string) bool {
 }
 
 // ShowTags は指定されたファイルの現在のタグを表示する
-func ShowTags(filePath string) error {
+func ShowTags(filePath string, w io.Writer) error {
 	// ファイルの存在チェック
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
@@ -240,21 +242,21 @@ func ShowTags(filePath string) error {
 	}
 
 	// タグを表示
-	fmt.Printf("File: %s\n", fileName)
-	fmt.Printf("Timestamp: %s\n", components.Timestamp)
-	fmt.Printf("Comment: %s\n", components.Comment)
+	fmt.Fprintf(w, "File: %s\n", fileName)
+	fmt.Fprintf(w, "Timestamp: %s\n", components.Timestamp)
+	fmt.Fprintf(w, "Comment: %s\n", components.Comment)
 
 	if len(components.Tags) > 0 {
-		fmt.Printf("Tags: %s\n", strings.Join(components.Tags, ", "))
+		fmt.Fprintf(w, "Tags: %s\n", strings.Join(components.Tags, ", "))
 	} else {
-		fmt.Println("Tags: (none)")
+		fmt.Fprintln(w, "Tags: (none)")
 	}
 
 	return nil
 }
 
 // SetTags はファイルのタグを直接設定する（非インタラクティブ）
-func SetTags(filePath string, tags []string) error {
+func SetTags(filePath string, tags []string, w io.Writer) error {
 	// ファイルの存在チェック
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
@@ -292,9 +294,9 @@ func SetTags(filePath string, tags []string) error {
 			return fmt.Errorf("failed to rename file: %w", err)
 		}
 
-		fmt.Printf("✓ Renamed: %s → %s\n", fileName, newFileName)
+		fmt.Fprintf(w, "✓ Renamed: %s → %s\n", fileName, newFileName)
 	} else {
-		fmt.Println("✓ No changes made")
+		fmt.Fprintln(w, "✓ No changes made")
 	}
 
 	return nil

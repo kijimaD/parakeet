@@ -84,7 +84,6 @@ func TestValidateFileNames(t *testing.T) {
 			// Run validation
 			buf := &bytes.Buffer{}
 			opts := ValidateOptions{
-				Verbose:    false,
 				Writer:     buf,
 				Extensions: nil,
 			}
@@ -105,45 +104,10 @@ func TestValidateFileNames(t *testing.T) {
 	}
 }
 
-func TestValidateFileNames_Verbose(t *testing.T) {
-	// Create temporary directory
-	tmpDir, err := os.MkdirTemp("", "parakeet-validate-verbose-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-
-	// Setup test files
-	validFile := "20250903T083109--valid.txt"
-	invalidFile := "invalid.txt"
-
-	err = os.WriteFile(filepath.Join(tmpDir, validFile), []byte("test"), 0644)
-	require.NoError(t, err)
-	err = os.WriteFile(filepath.Join(tmpDir, invalidFile), []byte("test"), 0644)
-	require.NoError(t, err)
-
-	// Run validation with verbose mode
-	buf := &bytes.Buffer{}
-	opts := ValidateOptions{
-		Verbose:    true,
-		Writer:     buf,
-		Extensions: nil,
-	}
-
-	result, err := ValidateFileNames(tmpDir, opts)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-
-	// Check output contains check marks
-	output := buf.String()
-	assert.Contains(t, output, "✓", "Output should contain valid file marker")
-	assert.Contains(t, output, "✗", "Output should contain invalid file marker")
-	assert.Contains(t, output, validFile, "Output should contain valid filename")
-	assert.Contains(t, output, invalidFile, "Output should contain invalid filename")
-}
 
 func TestValidateFileNames_NonExistentDirectory(t *testing.T) {
 	buf := &bytes.Buffer{}
 	opts := ValidateOptions{
-		Verbose:    false,
 		Writer:     buf,
 		Extensions: nil,
 	}
@@ -173,7 +137,6 @@ func TestValidateFileNames_SkipsDirectories(t *testing.T) {
 	// Run validation
 	buf := &bytes.Buffer{}
 	opts := ValidateOptions{
-		Verbose:    false,
 		Writer:     buf,
 		Extensions: nil,
 	}
@@ -318,7 +281,6 @@ func TestValidateFileNames_WithExtensionFilter(t *testing.T) {
 	// Test with extension filter (txt, pdf only)
 	buf := &bytes.Buffer{}
 	opts := ValidateOptions{
-		Verbose:    false,
 		Writer:     buf,
 		Extensions: []string{"txt", "pdf"},
 	}
@@ -339,61 +301,6 @@ func TestValidateFileNames_WithExtensionFilter(t *testing.T) {
 	assert.NotContains(t, output, "invalid.jpg", "Should not check jpg file")
 	assert.NotContains(t, output, ".md", "Should not check md files")
 	assert.Contains(t, output, "Total files: 4", "Should show correct total")
-}
-
-func TestValidateFileNames_DetailedOutput(t *testing.T) {
-	// Create temporary directory
-	tmpDir, err := os.MkdirTemp("", "parakeet-validate-detail-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-
-	// Create mixed valid/invalid files
-	files := map[string]bool{
-		"20250903T083109--document.pdf":   true,
-		"20250903T083109--image.jpg":      true,
-		"invalid-name.txt":                false,
-		"20250903T083109--notes__tag.md":  true,
-		"another-invalid.pdf":             false,
-	}
-
-	for name := range files {
-		filePath := filepath.Join(tmpDir, name)
-		err := os.WriteFile(filePath, []byte("content"), 0644)
-		require.NoError(t, err)
-	}
-
-	// Run validation with verbose
-	buf := &bytes.Buffer{}
-	opts := ValidateOptions{
-		Verbose:    true,
-		Writer:     buf,
-		Extensions: nil,
-	}
-
-	result, err := ValidateFileNames(tmpDir, opts)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-
-	// Check result
-	assert.Equal(t, 5, result.TotalFiles)
-	assert.Equal(t, 3, result.ValidFiles)
-	assert.Equal(t, 2, len(result.InvalidFiles))
-
-	// Check detailed output
-	output := buf.String()
-	for name, isValid := range files {
-		assert.Contains(t, output, name, "Output should mention %s", name)
-		if isValid {
-			// Verbose mode should show checkmarks for valid files
-			assert.True(t, strings.Contains(output, "✓"), "Should have checkmark in output")
-		} else {
-			assert.Contains(t, output, "✗", "Should have cross mark for invalid files")
-			assert.Contains(t, output, "invalid format", "Should mention invalid format")
-		}
-	}
-
-	assert.Contains(t, output, "Validation Summary", "Should show summary")
-	assert.Contains(t, output, "Some files have invalid format", "Should show failure message")
 }
 
 func TestValidateFileNames_AllValidOutput(t *testing.T) {
@@ -418,7 +325,6 @@ func TestValidateFileNames_AllValidOutput(t *testing.T) {
 	// Run validation
 	buf := &bytes.Buffer{}
 	opts := ValidateOptions{
-		Verbose:    false,
 		Writer:     buf,
 		Extensions: nil,
 	}
@@ -463,7 +369,6 @@ func TestValidateFileNames_CaseInsensitiveExtension(t *testing.T) {
 	// Test with lowercase extension filter
 	buf := &bytes.Buffer{}
 	opts := ValidateOptions{
-		Verbose:    false,
 		Writer:     buf,
 		Extensions: []string{"pdf", "txt"},
 	}

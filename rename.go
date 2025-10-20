@@ -10,8 +10,6 @@ import (
 
 // RenameOptions はリネーム操作のオプションを表す
 type RenameOptions struct {
-	DryRun     bool      // ドライランモード（実際にはリネームしない）
-	Verbose    bool      // 詳細出力モード
 	Writer     io.Writer // 出力先
 	Extensions []string  // 対象拡張子（空の場合は全ファイル）
 }
@@ -49,9 +47,6 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 
 		// すでにフォーマット済みの場合はスキップ
 		if IsFormatted(oldName) {
-			if opts.Verbose {
-				fmt.Fprintf(opts.Writer, "Skipped (already formatted): %s\n", oldName)
-			}
 			skippedCount++
 			continue
 		}
@@ -81,16 +76,10 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 			continue
 		}
 
-		if opts.DryRun {
-			fmt.Fprintf(opts.Writer, "[DRY RUN] Would rename: %s -> %s\n", oldName, newName)
-		} else {
-			if err := os.Rename(oldPath, newPath); err != nil {
-				fmt.Fprintf(opts.Writer, "Error renaming %s: %v\n", oldName, err)
-				continue
-			}
-			if opts.Verbose {
-				fmt.Fprintf(opts.Writer, "Renamed: %s -> %s\n", oldName, newName)
-			}
+		// ファイルをリネーム
+		if err := os.Rename(oldPath, newPath); err != nil {
+			fmt.Fprintf(opts.Writer, "Error renaming %s: %v\n", oldName, err)
+			continue
 		}
 
 		processedCount++
@@ -100,9 +89,6 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 	fmt.Fprintf(opts.Writer, "\nSummary:\n")
 	fmt.Fprintf(opts.Writer, "  Processed: %d\n", processedCount)
 	fmt.Fprintf(opts.Writer, "  Skipped: %d\n", skippedCount)
-	if opts.DryRun {
-		fmt.Fprintf(opts.Writer, "  (Dry run - no files were actually renamed)\n")
-	}
 
 	return nil
 }

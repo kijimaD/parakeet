@@ -9,7 +9,6 @@ import (
 
 // ValidateOptions はバリデーション操作のオプションを表す
 type ValidateOptions struct {
-	Verbose    bool      // 詳細出力モード
 	Writer     io.Writer // 出力先
 	Extensions []string  // 対象拡張子（空の場合は全ファイル）
 }
@@ -56,9 +55,6 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 		// ファイル名が正しいフォーマットかチェック
 		if IsFormatted(fileName) {
 			result.ValidFiles++
-			if opts.Verbose {
-				fmt.Fprintf(opts.Writer, "✓ %s\n", fileName)
-			}
 		} else {
 			result.InvalidFiles = append(result.InvalidFiles, fileName)
 			fmt.Fprintf(opts.Writer, "✗ %s (invalid format)\n", fileName)

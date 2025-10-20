@@ -19,16 +19,6 @@ func main() {
 				Name:  "generate",
 				Usage: "ディレクトリ内のファイルにタイムスタンプ付きのフォーマット済みファイル名を生成する",
 				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "dry-run",
-						Aliases: []string{"n"},
-						Usage:   "実際にリネームせず、リネーム予定を表示する",
-					},
-					&cli.BoolFlag{
-						Name:    "verbose",
-						Aliases: []string{"v"},
-						Usage:   "詳細な出力を表示する",
-					},
 					&cli.StringSliceFlag{
 						Name:    "ext",
 						Aliases: []string{"e"},
@@ -43,8 +33,6 @@ func main() {
 					}
 
 					opts := RenameOptions{
-						DryRun:     cmd.Bool("dry-run"),
-						Verbose:    cmd.Bool("verbose"),
 						Writer:     os.Stdout,
 						Extensions: cmd.StringSlice("ext"),
 					}
@@ -56,11 +44,6 @@ func main() {
 				Name:  "validate",
 				Usage: "ディレクトリ内のファイル名が正しいフォーマットかをチェックする",
 				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "verbose",
-						Aliases: []string{"v"},
-						Usage:   "詳細な出力を表示する",
-					},
 					&cli.StringSliceFlag{
 						Name:    "ext",
 						Aliases: []string{"e"},
@@ -75,7 +58,6 @@ func main() {
 					}
 
 					opts := ValidateOptions{
-						Verbose:    cmd.Bool("verbose"),
 						Writer:     os.Stdout,
 						Extensions: cmd.StringSlice("ext"),
 					}
@@ -103,11 +85,6 @@ func main() {
 						Aliases: []string{"s"},
 						Usage:   "現在のタグを表示する",
 					},
-					&cli.StringSliceFlag{
-						Name:    "set",
-						Aliases: []string{"t"},
-						Usage:   "タグを直接設定する（例: --set tag1 --set tag2）",
-					},
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					// ファイルパスを取得
@@ -118,17 +95,13 @@ func main() {
 
 					// --show フラグの場合はタグを表示
 					if cmd.Bool("show") {
-						return ShowTags(filePath)
-					}
-
-					// --set フラグの場合はタグを直接設定
-					if tags := cmd.StringSlice("set"); len(tags) > 0 {
-						return SetTags(filePath, tags)
+						return ShowTags(filePath, os.Stdout)
 					}
 
 					// デフォルトはインタラクティブモード
 					opts := TagOptions{
 						Interactive: true,
+						Writer:      os.Stdout,
 					}
 
 					return EditTags(filePath, opts)

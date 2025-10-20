@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,7 +105,8 @@ func TestShowTags(t *testing.T) {
 			require.NoError(t, err)
 
 			// Test ShowTags
-			err = ShowTags(filePath)
+			buf := &bytes.Buffer{}
+			err = ShowTags(filePath, buf)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -116,7 +118,8 @@ func TestShowTags(t *testing.T) {
 }
 
 func TestShowTags_NonExistentFile(t *testing.T) {
-	err := ShowTags("/non/existent/file.pdf")
+	buf := &bytes.Buffer{}
+	err := ShowTags("/non/existent/file.pdf", buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "does not exist")
 }
@@ -127,7 +130,8 @@ func TestShowTags_Directory(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	err = ShowTags(tmpDir)
+	buf := &bytes.Buffer{}
+	err = ShowTags(tmpDir, buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot show tags for directory")
 }
@@ -184,7 +188,8 @@ func TestSetTags(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set tags
-			err = SetTags(filePath, tt.newTags)
+			buf := &bytes.Buffer{}
+			err = SetTags(filePath, tt.newTags, buf)
 			require.NoError(t, err)
 
 			// Verify new file exists
@@ -207,7 +212,8 @@ func TestSetTags(t *testing.T) {
 }
 
 func TestSetTags_NonExistentFile(t *testing.T) {
-	err := SetTags("/non/existent/file.pdf", []string{"tag1"})
+	buf := &bytes.Buffer{}
+	err := SetTags("/non/existent/file.pdf", []string{"tag1"}, buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "does not exist")
 }
@@ -223,7 +229,8 @@ func TestSetTags_InvalidFormat(t *testing.T) {
 	err = os.WriteFile(filePath, []byte("test"), 0644)
 	require.NoError(t, err)
 
-	err = SetTags(filePath, []string{"tag1"})
+	buf := &bytes.Buffer{}
+	err = SetTags(filePath, []string{"tag1"}, buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not in correct format")
 }
@@ -234,7 +241,8 @@ func TestSetTags_Directory(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	err = SetTags(tmpDir, []string{"tag1"})
+	buf := &bytes.Buffer{}
+	err = SetTags(tmpDir, []string{"tag1"}, buf)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot set tags for directory")
 }
@@ -252,8 +260,10 @@ func TestEditTags_NonInteractive(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test non-interactive mode (should do nothing)
+	buf := &bytes.Buffer{}
 	opts := TagOptions{
 		Interactive: false,
+		Writer:      buf,
 	}
 
 	err = EditTags(filePath, opts)
@@ -265,8 +275,10 @@ func TestEditTags_NonInteractive(t *testing.T) {
 }
 
 func TestEditTags_NonExistentFile(t *testing.T) {
+	buf := &bytes.Buffer{}
 	opts := TagOptions{
 		Interactive: true,
+		Writer:      buf,
 	}
 
 	err := EditTags("/non/existent/file.pdf", opts)
@@ -285,8 +297,10 @@ func TestEditTags_InvalidFormat(t *testing.T) {
 	err = os.WriteFile(filePath, []byte("test"), 0644)
 	require.NoError(t, err)
 
+	buf := &bytes.Buffer{}
 	opts := TagOptions{
 		Interactive: true,
+		Writer:      buf,
 	}
 
 	err = EditTags(filePath, opts)
@@ -307,7 +321,8 @@ func TestIntegration_TagWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Step 2: Add tags
-	err = SetTags(filePath, []string{"work", "important"})
+	buf := &bytes.Buffer{}
+	err = SetTags(filePath, []string{"work", "important"}, buf)
 	require.NoError(t, err)
 
 	// Step 3: Verify new file exists
@@ -317,7 +332,8 @@ func TestIntegration_TagWorkflow(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Step 4: Modify tags
-	err = SetTags(newFilePath, []string{"work", "urgent", "review"})
+	buf = &bytes.Buffer{}
+	err = SetTags(newFilePath, []string{"work", "urgent", "review"}, buf)
 	require.NoError(t, err)
 
 	// Step 5: Verify final file
@@ -332,7 +348,8 @@ func TestIntegration_TagWorkflow(t *testing.T) {
 	assert.Equal(t, "important document", string(content))
 
 	// Step 6: Remove all tags
-	err = SetTags(finalFilePath, []string{})
+	buf = &bytes.Buffer{}
+	err = SetTags(finalFilePath, []string{}, buf)
 	require.NoError(t, err)
 
 	// Step 7: Verify back to no tags

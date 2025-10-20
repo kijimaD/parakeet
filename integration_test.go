@@ -36,7 +36,6 @@ func TestIntegration_GenerateAndValidate(t *testing.T) {
 	// Step 1: Validate before formatting (should all be invalid)
 	validateBuf := &bytes.Buffer{}
 	validateOpts := ValidateOptions{
-		Verbose:    false,
 		Writer:     validateBuf,
 		Extensions: nil,
 	}
@@ -53,8 +52,6 @@ func TestIntegration_GenerateAndValidate(t *testing.T) {
 	// Step 2: Generate formatted names
 	generateBuf := &bytes.Buffer{}
 	generateOpts := RenameOptions{
-		DryRun:     false,
-		Verbose:    true,
 		Writer:     generateBuf,
 		Extensions: nil,
 	}
@@ -65,9 +62,6 @@ func TestIntegration_GenerateAndValidate(t *testing.T) {
 	output = generateBuf.String()
 	assert.Contains(t, output, "Processed: 5")
 	assert.Contains(t, output, "Skipped: 0")
-	for _, name := range testFiles {
-		assert.Contains(t, output, name, "Should mention original filename")
-	}
 
 	// Step 3: Verify files were renamed
 	entries, err := os.ReadDir(tmpDir)
@@ -81,7 +75,6 @@ func TestIntegration_GenerateAndValidate(t *testing.T) {
 	// Step 4: Validate after formatting (should all be valid)
 	validateBuf2 := &bytes.Buffer{}
 	validateOpts2 := ValidateOptions{
-		Verbose:    false,
 		Writer:     validateBuf2,
 		Extensions: nil,
 	}
@@ -129,8 +122,6 @@ func TestIntegration_ExtensionFiltering(t *testing.T) {
 	// Step 1: Generate formatted names for PDF and TXT files only
 	generateBuf := &bytes.Buffer{}
 	generateOpts := RenameOptions{
-		DryRun:     false,
-		Verbose:    false,
 		Writer:     generateBuf,
 		Extensions: []string{"pdf", "txt"},
 	}
@@ -168,7 +159,6 @@ func TestIntegration_ExtensionFiltering(t *testing.T) {
 	// Step 3: Validate only MD and CSV files
 	validateBuf := &bytes.Buffer{}
 	validateOpts := ValidateOptions{
-		Verbose:    false,
 		Writer:     validateBuf,
 		Extensions: []string{"md", "csv"},
 	}
@@ -205,7 +195,6 @@ func TestIntegration_MixedScenario(t *testing.T) {
 	// Step 1: Validate current state
 	validateBuf1 := &bytes.Buffer{}
 	validateOpts1 := ValidateOptions{
-		Verbose:    true,
 		Writer:     validateBuf1,
 		Extensions: nil,
 	}
@@ -217,14 +206,11 @@ func TestIntegration_MixedScenario(t *testing.T) {
 	assert.Equal(t, 2, len(result1.InvalidFiles))
 
 	output1 := validateBuf1.String()
-	assert.Contains(t, output1, "✓", "Should have checkmarks for valid files")
 	assert.Contains(t, output1, "✗", "Should have crosses for invalid files")
 
 	// Step 2: Generate formatted names for unformatted files
 	generateBuf := &bytes.Buffer{}
 	generateOpts := RenameOptions{
-		DryRun:     false,
-		Verbose:    true,
 		Writer:     generateBuf,
 		Extensions: nil,
 	}
@@ -235,12 +221,10 @@ func TestIntegration_MixedScenario(t *testing.T) {
 	output2 := generateBuf.String()
 	assert.Contains(t, output2, "Processed: 2", "Should process 2 unformatted files")
 	assert.Contains(t, output2, "Skipped: 3", "Should skip 3 already formatted files")
-	assert.Contains(t, output2, "Skipped (already formatted):", "Should mention skipped files")
 
 	// Step 3: Validate all files are now formatted
 	validateBuf2 := &bytes.Buffer{}
 	validateOpts2 := ValidateOptions{
-		Verbose:    false,
 		Writer:     validateBuf2,
 		Extensions: nil,
 	}
