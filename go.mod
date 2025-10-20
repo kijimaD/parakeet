@@ -1,4 +1,4 @@
-module github.com/kijimaD/go_skel
+module github.com/kijimaD/parakeet
 
 go 1.24.0
 
