@@ -63,9 +63,9 @@ func EditTags(filePath string, opts TagOptions) error {
 				return fmt.Errorf("failed to rename file: %w", err)
 			}
 
-			fmt.Fprintf(opts.Writer, "✓ Renamed: %s → %s\n", fileName, newFileName)
+			_, _ = fmt.Fprintf(opts.Writer, "✓ Renamed: %s → %s\n", fileName, newFileName)
 		} else {
-			fmt.Fprintln(opts.Writer, "✓ No changes made")
+			_, _ = fmt.Fprintln(opts.Writer, "✓ No changes made")
 		}
 	}
 
@@ -251,7 +251,7 @@ func promptForCustomTag() (string, error) {
 
 	// タグに不正な文字が含まれていないかチェック
 	if strings.ContainsAny(tag, "/_--.") {
-		return "", fmt.Errorf("tag cannot contain special characters: /, _, -, .")
+		return "", fmt.Errorf("tag cannot contain special characters (/, _, -, .)")
 	}
 
 	return tag, nil
@@ -305,14 +305,14 @@ func ShowTags(filePath string, w io.Writer) error {
 	}
 
 	// タグを表示
-	fmt.Fprintf(w, "File: %s\n", fileName)
-	fmt.Fprintf(w, "Timestamp: %s\n", components.Timestamp)
-	fmt.Fprintf(w, "Comment: %s\n", components.Comment)
+	_, _ = fmt.Fprintf(w, "File: %s\n", fileName)
+	_, _ = fmt.Fprintf(w, "Timestamp: %s\n", components.Timestamp)
+	_, _ = fmt.Fprintf(w, "Comment: %s\n", components.Comment)
 
 	if len(components.Tags) > 0 {
-		fmt.Fprintf(w, "Tags: %s\n", strings.Join(components.Tags, ", "))
+		_, _ = fmt.Fprintf(w, "Tags: %s\n", strings.Join(components.Tags, ", "))
 	} else {
-		fmt.Fprintln(w, "Tags: (none)")
+		_, _ = fmt.Fprintln(w, "Tags: (none)")
 	}
 
 	return nil
@@ -357,9 +357,9 @@ func SetTags(filePath string, tags []string, w io.Writer) error {
 			return fmt.Errorf("failed to rename file: %w", err)
 		}
 
-		fmt.Fprintf(w, "✓ Renamed: %s → %s\n", fileName, newFileName)
+		_, _ = fmt.Fprintf(w, "✓ Renamed: %s → %s\n", fileName, newFileName)
 	} else {
-		fmt.Fprintln(w, "✓ No changes made")
+		_, _ = fmt.Fprintln(w, "✓ No changes made")
 	}
 
 	return nil

@@ -9,6 +9,7 @@ import (
 )
 
 func TestGenerateTimestamp(t *testing.T) {
+	t.Parallel()
 	timestamp := GenerateTimestamp()
 
 	// Check format (YYYYMMDDTHHMMSS)
@@ -21,6 +22,7 @@ func TestGenerateTimestamp(t *testing.T) {
 }
 
 func TestFormatFileName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		components FileNameComponents
@@ -80,6 +82,7 @@ func TestFormatFileName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tt.components.FormatFileName()
 			assert.Equal(t, tt.expected, result)
 		})
@@ -87,6 +90,7 @@ func TestFormatFileName(t *testing.T) {
 }
 
 func TestParseFileName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		filename string
@@ -164,6 +168,7 @@ func TestParseFileName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := ParseFileName(tt.filename)
 
 			if tt.wantErr {
@@ -182,6 +187,7 @@ func TestParseFileName(t *testing.T) {
 }
 
 func TestIsFormatted(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		filename string
@@ -211,6 +217,7 @@ func TestIsFormatted(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := IsFormatted(tt.filename)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -218,6 +225,7 @@ func TestIsFormatted(t *testing.T) {
 }
 
 func TestFormatParseRoundTrip(t *testing.T) {
+	t.Parallel()
 	// Test that formatting and parsing are inverse operations
 	original := FileNameComponents{
 		Timestamp: "20250903T083109",
@@ -237,6 +245,7 @@ func TestFormatParseRoundTrip(t *testing.T) {
 }
 
 func TestMatchesExtensions(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name       string
 		filename   string
@@ -301,6 +310,7 @@ func TestMatchesExtensions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := MatchesExtensions(tt.filename, tt.extensions)
 			assert.Equal(t, tt.expected, result)
 		})

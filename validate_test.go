@@ -12,6 +12,7 @@ import (
 )
 
 func TestValidateFileNames(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name              string
 		setupFiles        []string
@@ -69,10 +70,11 @@ func TestValidateFileNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create temporary directory
 			tmpDir, err := os.MkdirTemp("", "parakeet-validate-test-*")
 			require.NoError(t, err)
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			// Setup test files
 			for _, filename := range tt.setupFiles {
@@ -106,6 +108,7 @@ func TestValidateFileNames(t *testing.T) {
 
 
 func TestValidateFileNames_NonExistentDirectory(t *testing.T) {
+	t.Parallel()
 	buf := &bytes.Buffer{}
 	opts := ValidateOptions{
 		Writer:     buf,
@@ -119,10 +122,11 @@ func TestValidateFileNames_NonExistentDirectory(t *testing.T) {
 }
 
 func TestValidateFileNames_SkipsDirectories(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-validate-subdir-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a subdirectory
 	subDir := filepath.Join(tmpDir, "subdir")
@@ -151,6 +155,7 @@ func TestValidateFileNames_SkipsDirectories(t *testing.T) {
 }
 
 func TestValidateFileName(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		filename string
@@ -180,6 +185,7 @@ func TestValidateFileName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := ValidateFileName(tt.filename)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -191,10 +197,11 @@ func TestValidateFileName(t *testing.T) {
 }
 
 func TestGetInvalidFiles(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-invalid-files-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Setup test files
 	validFiles := []string{
@@ -236,6 +243,7 @@ func TestGetInvalidFiles(t *testing.T) {
 }
 
 func TestGetInvalidFiles_NonExistentDirectory(t *testing.T) {
+	t.Parallel()
 	result, err := GetInvalidFiles("/non/existent/directory")
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -243,10 +251,11 @@ func TestGetInvalidFiles_NonExistentDirectory(t *testing.T) {
 }
 
 func TestGetInvalidFiles_EmptyDirectory(t *testing.T) {
+	t.Parallel()
 	// Create temporary empty directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-empty-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	result, err := GetInvalidFiles(tmpDir)
 	require.NoError(t, err)
@@ -254,10 +263,11 @@ func TestGetInvalidFiles_EmptyDirectory(t *testing.T) {
 }
 
 func TestValidateFileNames_WithExtensionFilter(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-validate-ext-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create files with various extensions
 	testFiles := []struct {
@@ -304,10 +314,11 @@ func TestValidateFileNames_WithExtensionFilter(t *testing.T) {
 }
 
 func TestValidateFileNames_AllValidOutput(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-validate-allvalid-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create only valid files
 	validFiles := []string{
@@ -347,10 +358,11 @@ func TestValidateFileNames_AllValidOutput(t *testing.T) {
 }
 
 func TestValidateFileNames_CaseInsensitiveExtension(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-validate-case-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create files with different case extensions
 	files := []string{

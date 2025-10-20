@@ -13,10 +13,11 @@ import (
 
 // TestIntegration_GenerateAndValidate は実際のディレクトリとファイルを使った統合テスト
 func TestIntegration_GenerateAndValidate(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-integration-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create test files with various extensions
 	testFiles := []string{
@@ -98,10 +99,11 @@ func TestIntegration_GenerateAndValidate(t *testing.T) {
 
 // TestIntegration_ExtensionFiltering は拡張子フィルタリングの統合テスト
 func TestIntegration_ExtensionFiltering(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-integration-ext-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create files with various extensions
 	testFiles := map[string]string{
@@ -172,10 +174,11 @@ func TestIntegration_ExtensionFiltering(t *testing.T) {
 
 // TestIntegration_MixedScenario は混在シナリオの統合テスト
 func TestIntegration_MixedScenario(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-integration-mixed-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a mix of formatted and unformatted files
 	files := map[string]bool{

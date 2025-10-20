@@ -25,7 +25,7 @@ func main() {
 						Usage:   "対象拡張子（カンマ区切り、例: pdf,txt,md）",
 					},
 				},
-				Action: func(ctx context.Context, cmd *cli.Command) error {
+				Action: func(_ context.Context, cmd *cli.Command) error {
 					// 拡張子指定は必須
 					extensions := cmd.StringSlice("ext")
 					if len(extensions) == 0 {
@@ -56,7 +56,7 @@ func main() {
 						Usage:   "対象拡張子（カンマ区切り、例: pdf,txt,md）",
 					},
 				},
-				Action: func(ctx context.Context, cmd *cli.Command) error {
+				Action: func(_ context.Context, cmd *cli.Command) error {
 					// 対象ディレクトリを取得（デフォルトはカレントディレクトリ）
 					targetDir := "."
 					if cmd.Args().Len() > 0 {
@@ -92,7 +92,7 @@ func main() {
 						Usage:   "現在のタグを表示する",
 					},
 				},
-				Action: func(ctx context.Context, cmd *cli.Command) error {
+				Action: func(_ context.Context, cmd *cli.Command) error {
 					// ファイルパスを取得
 					if cmd.Args().Len() == 0 {
 						return fmt.Errorf("file path is required")

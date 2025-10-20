@@ -13,6 +13,7 @@ import (
 )
 
 func TestTagsEqual(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		a        []string
@@ -65,6 +66,7 @@ func TestTagsEqual(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := tagsEqual(tt.a, tt.b)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -72,6 +74,7 @@ func TestTagsEqual(t *testing.T) {
 }
 
 func TestShowTags(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		fileName    string
@@ -96,10 +99,11 @@ func TestShowTags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create temporary directory
 			tmpDir, err := os.MkdirTemp("", "parakeet-showtags-*")
 			require.NoError(t, err)
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			// Create test file
 			filePath := filepath.Join(tmpDir, tt.fileName)
@@ -120,6 +124,7 @@ func TestShowTags(t *testing.T) {
 }
 
 func TestShowTags_NonExistentFile(t *testing.T) {
+	t.Parallel()
 	buf := &bytes.Buffer{}
 	err := ShowTags("/non/existent/file.pdf", buf)
 	assert.Error(t, err)
@@ -127,10 +132,11 @@ func TestShowTags_NonExistentFile(t *testing.T) {
 }
 
 func TestShowTags_Directory(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-showtags-dir-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	buf := &bytes.Buffer{}
 	err = ShowTags(tmpDir, buf)
@@ -139,6 +145,7 @@ func TestShowTags_Directory(t *testing.T) {
 }
 
 func TestSetTags(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name         string
 		fileName     string
@@ -179,10 +186,11 @@ func TestSetTags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create temporary directory
 			tmpDir, err := os.MkdirTemp("", "parakeet-settags-*")
 			require.NoError(t, err)
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			// Create test file
 			filePath := filepath.Join(tmpDir, tt.fileName)
@@ -214,6 +222,7 @@ func TestSetTags(t *testing.T) {
 }
 
 func TestSetTags_NonExistentFile(t *testing.T) {
+	t.Parallel()
 	buf := &bytes.Buffer{}
 	err := SetTags("/non/existent/file.pdf", []string{"tag1"}, buf)
 	assert.Error(t, err)
@@ -221,10 +230,11 @@ func TestSetTags_NonExistentFile(t *testing.T) {
 }
 
 func TestSetTags_InvalidFormat(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-settags-invalid-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create file with invalid format
 	filePath := filepath.Join(tmpDir, "invalid-format.pdf")
@@ -238,10 +248,11 @@ func TestSetTags_InvalidFormat(t *testing.T) {
 }
 
 func TestSetTags_Directory(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-settags-dir-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	buf := &bytes.Buffer{}
 	err = SetTags(tmpDir, []string{"tag1"}, buf)
@@ -250,10 +261,11 @@ func TestSetTags_Directory(t *testing.T) {
 }
 
 func TestEditTags_NonInteractive(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-edittags-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create test file
 	fileName := "20250903T083109--test-file__tag1.pdf"
@@ -277,6 +289,7 @@ func TestEditTags_NonInteractive(t *testing.T) {
 }
 
 func TestEditTags_NonExistentFile(t *testing.T) {
+	t.Parallel()
 	buf := &bytes.Buffer{}
 	opts := TagOptions{
 		Interactive: true,
@@ -289,10 +302,11 @@ func TestEditTags_NonExistentFile(t *testing.T) {
 }
 
 func TestEditTags_InvalidFormat(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-edittags-invalid-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create file with invalid format
 	filePath := filepath.Join(tmpDir, "invalid-format.pdf")
@@ -311,10 +325,11 @@ func TestEditTags_InvalidFormat(t *testing.T) {
 }
 
 func TestIntegration_TagWorkflow(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-tag-workflow-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Step 1: Create a file without tags
 	fileName := "20250903T083109--document.pdf"
@@ -361,6 +376,7 @@ func TestIntegration_TagWorkflow(t *testing.T) {
 }
 
 func TestLoadTagsFromTOML(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		content       string
@@ -409,15 +425,16 @@ key = "test"
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create temporary file
 			tmpFile, err := os.CreateTemp("", "tags-*.toml")
 			require.NoError(t, err)
-			defer os.Remove(tmpFile.Name())
+			defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 			// Write content
 			_, err = tmpFile.WriteString(tt.content)
 			require.NoError(t, err)
-			tmpFile.Close()
+			_ = tmpFile.Close()
 
 			// Load tags
 			tags, err := LoadTagsFromTOML(tmpFile.Name())
@@ -433,12 +450,14 @@ key = "test"
 }
 
 func TestLoadTagsFromTOML_NonExistentFile(t *testing.T) {
+	t.Parallel()
 	tags, err := LoadTagsFromTOML("/non/existent/tags.toml")
 	assert.NoError(t, err)
 	assert.Empty(t, tags, "Should return empty slice for non-existent file")
 }
 
 func TestExtractKeyFromDisplay(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		displayText string
@@ -463,6 +482,7 @@ func TestExtractKeyFromDisplay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// extractKey 関数のロジックを再現
 			extractKey := func(displayText string) string {
 				parts := strings.SplitN(displayText, " - ", 2)
@@ -476,6 +496,7 @@ func TestExtractKeyFromDisplay(t *testing.T) {
 }
 
 func TestFormatDisplay(t *testing.T) {
+	t.Parallel()
 	tagDescMap := map[string]string{
 		"infra":   "インフラ関連",
 		"network": "ネットワーク関連",
@@ -507,6 +528,7 @@ func TestFormatDisplay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := formatDisplay(tt.key)
 			assert.Equal(t, tt.expected, result)
 		})

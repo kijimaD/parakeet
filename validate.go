@@ -57,20 +57,20 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 			result.ValidFiles++
 		} else {
 			result.InvalidFiles = append(result.InvalidFiles, fileName)
-			fmt.Fprintf(opts.Writer, "✗ %s (invalid format)\n", fileName)
+			_, _ = fmt.Fprintf(opts.Writer, "✗ %s (invalid format)\n", fileName)
 		}
 	}
 
 	// サマリーを出力
-	fmt.Fprintf(opts.Writer, "\nValidation Summary:\n")
-	fmt.Fprintf(opts.Writer, "  Total files: %d\n", result.TotalFiles)
-	fmt.Fprintf(opts.Writer, "  Valid: %d\n", result.ValidFiles)
-	fmt.Fprintf(opts.Writer, "  Invalid: %d\n", len(result.InvalidFiles))
+	_, _ = fmt.Fprintf(opts.Writer, "\nValidation Summary:\n")
+	_, _ = fmt.Fprintf(opts.Writer, "  Total files: %d\n", result.TotalFiles)
+	_, _ = fmt.Fprintf(opts.Writer, "  Valid: %d\n", result.ValidFiles)
+	_, _ = fmt.Fprintf(opts.Writer, "  Invalid: %d\n", len(result.InvalidFiles))
 
 	if len(result.InvalidFiles) == 0 {
-		fmt.Fprintf(opts.Writer, "\n✓ All files are properly formatted!\n")
+		_, _ = fmt.Fprintf(opts.Writer, "\n✓ All files are properly formatted!\n")
 	} else {
-		fmt.Fprintf(opts.Writer, "\n✗ Some files have invalid format.\n")
+		_, _ = fmt.Fprintf(opts.Writer, "\n✗ Some files have invalid format.\n")
 	}
 
 	return result, nil

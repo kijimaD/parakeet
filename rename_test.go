@@ -11,6 +11,7 @@ import (
 )
 
 func TestGenerateFileNames(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name          string
 		setupFiles    []string
@@ -68,10 +69,11 @@ func TestGenerateFileNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			// Create temporary directory
 			tmpDir, err := os.MkdirTemp("", "parakeet-test-*")
 			require.NoError(t, err)
-			defer os.RemoveAll(tmpDir)
+			defer func() { _ = os.RemoveAll(tmpDir) }()
 
 			// Setup test files
 			for _, filename := range tt.setupFiles {
@@ -122,6 +124,7 @@ func TestGenerateFileNames(t *testing.T) {
 }
 
 func TestGenerateFileNames_NonExistentDirectory(t *testing.T) {
+	t.Parallel()
 	opts := RenameOptions{
 		Writer:     &bytes.Buffer{},
 		Extensions: []string{"txt"},
@@ -133,10 +136,11 @@ func TestGenerateFileNames_NonExistentDirectory(t *testing.T) {
 }
 
 func TestGenerateFileNames_EmptyDirectory(t *testing.T) {
+	t.Parallel()
 	// Create temporary empty directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-test-empty-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	opts := RenameOptions{
 		Writer:     &bytes.Buffer{},
@@ -153,10 +157,11 @@ func TestGenerateFileNames_EmptyDirectory(t *testing.T) {
 }
 
 func TestGenerateFileNames_SkipsDirectories(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-test-subdir-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create a subdirectory
 	subDir := filepath.Join(tmpDir, "subdir")
@@ -201,10 +206,11 @@ func TestGenerateFileNames_SkipsDirectories(t *testing.T) {
 }
 
 func TestGenerateFileNames_PreservesExtension(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-test-ext-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	testFiles := []struct {
 		original  string
@@ -253,10 +259,11 @@ func TestGenerateFileNames_PreservesExtension(t *testing.T) {
 }
 
 func TestGenerateFileNames_WithExtensionFilter(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-test-ext-filter-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create files with various extensions
 	testFiles := []struct {
@@ -311,10 +318,11 @@ func TestGenerateFileNames_WithExtensionFilter(t *testing.T) {
 }
 
 func TestGenerateFileNames_ActualRename(t *testing.T) {
+	t.Parallel()
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "parakeet-test-actual-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create test files
 	originalFiles := []string{

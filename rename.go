@@ -71,14 +71,14 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 
 		// 新しいファイル名がすでに存在するかチェック
 		if _, err := os.Stat(newPath); err == nil {
-			fmt.Fprintf(opts.Writer, "Warning: target file already exists, skipping: %s\n", newName)
+			_, _ = fmt.Fprintf(opts.Writer, "Warning: target file already exists, skipping: %s\n", newName)
 			skippedCount++
 			continue
 		}
 
 		// ファイルをリネーム
 		if err := os.Rename(oldPath, newPath); err != nil {
-			fmt.Fprintf(opts.Writer, "Error renaming %s: %v\n", oldName, err)
+			_, _ = fmt.Fprintf(opts.Writer, "Error renaming %s: %v\n", oldName, err)
 			continue
 		}
 
@@ -86,9 +86,9 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 	}
 
 	// サマリーを出力
-	fmt.Fprintf(opts.Writer, "\nSummary:\n")
-	fmt.Fprintf(opts.Writer, "  Processed: %d\n", processedCount)
-	fmt.Fprintf(opts.Writer, "  Skipped: %d\n", skippedCount)
+	_, _ = fmt.Fprintf(opts.Writer, "\nSummary:\n")
+	_, _ = fmt.Fprintf(opts.Writer, "  Processed: %d\n", processedCount)
+	_, _ = fmt.Fprintf(opts.Writer, "  Skipped: %d\n", skippedCount)
 
 	return nil
 }
