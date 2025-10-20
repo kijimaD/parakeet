@@ -9,13 +9,13 @@ CLIツールとして、サポートする。
 
 ディレクトリ一括。
 
-- リネーム(ID付与)
-  - go run . generate .
-- バリデーション
-  - go run . validate .
+```
+# ID付与
+go run . generate . --ext pdf
 
-ファイル個別。
+# バリデーション
+go run . validate . --ext pdf
 
-- タグカスタム
-  - go run . tag ./20250903T083109--TCPIP入門__network_infra.pdf
-  - タグ選択CLIを出す
+# タグ編集
+go run . tag {file名}
+```

@@ -93,6 +93,47 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name:      "tag",
+				Usage:     "ファイルのタグをインタラクティブに編集する",
+				ArgsUsage: "<file_path>",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "show",
+						Aliases: []string{"s"},
+						Usage:   "現在のタグを表示する",
+					},
+					&cli.StringSliceFlag{
+						Name:    "set",
+						Aliases: []string{"t"},
+						Usage:   "タグを直接設定する（例: --set tag1 --set tag2）",
+					},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					// ファイルパスを取得
+					if cmd.Args().Len() == 0 {
+						return fmt.Errorf("file path is required")
+					}
+					filePath := cmd.Args().Get(0)
+
+					// --show フラグの場合はタグを表示
+					if cmd.Bool("show") {
+						return ShowTags(filePath)
+					}
+
+					// --set フラグの場合はタグを直接設定
+					if tags := cmd.StringSlice("set"); len(tags) > 0 {
+						return SetTags(filePath, tags)
+					}
+
+					// デフォルトはインタラクティブモード
+					opts := TagOptions{
+						Interactive: true,
+					}
+
+					return EditTags(filePath, opts)
+				},
+			},
 		},
 	}
 

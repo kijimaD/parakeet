@@ -1,0 +1,342 @@
+package main
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestTagsEqual(t *testing.T) {
+	tests := []struct {
+		name     string
+		a        []string
+		b        []string
+		expected bool
+	}{
+		{
+			name:     "equal tags in same order",
+			a:        []string{"tag1", "tag2", "tag3"},
+			b:        []string{"tag1", "tag2", "tag3"},
+			expected: true,
+		},
+		{
+			name:     "equal tags in different order",
+			a:        []string{"tag1", "tag3", "tag2"},
+			b:        []string{"tag2", "tag1", "tag3"},
+			expected: true,
+		},
+		{
+			name:     "different tags",
+			a:        []string{"tag1", "tag2"},
+			b:        []string{"tag1", "tag3"},
+			expected: false,
+		},
+		{
+			name:     "different length",
+			a:        []string{"tag1", "tag2"},
+			b:        []string{"tag1", "tag2", "tag3"},
+			expected: false,
+		},
+		{
+			name:     "both empty",
+			a:        []string{},
+			b:        []string{},
+			expected: true,
+		},
+		{
+			name:     "one empty",
+			a:        []string{"tag1"},
+			b:        []string{},
+			expected: false,
+		},
+		{
+			name:     "both nil",
+			a:        nil,
+			b:        nil,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tagsEqual(tt.a, tt.b)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestShowTags(t *testing.T) {
+	tests := []struct {
+		name        string
+		fileName    string
+		expectError bool
+	}{
+		{
+			name:        "valid file with tags",
+			fileName:    "20250903T083109--test-file__tag1_tag2.pdf",
+			expectError: false,
+		},
+		{
+			name:        "valid file without tags",
+			fileName:    "20250903T083109--test-file.pdf",
+			expectError: false,
+		},
+		{
+			name:        "invalid file format",
+			fileName:    "invalid-file.pdf",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create temporary directory
+			tmpDir, err := os.MkdirTemp("", "parakeet-showtags-*")
+			require.NoError(t, err)
+			defer os.RemoveAll(tmpDir)
+
+			// Create test file
+			filePath := filepath.Join(tmpDir, tt.fileName)
+			err = os.WriteFile(filePath, []byte("test content"), 0644)
+			require.NoError(t, err)
+
+			// Test ShowTags
+			err = ShowTags(filePath)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestShowTags_NonExistentFile(t *testing.T) {
+	err := ShowTags("/non/existent/file.pdf")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not exist")
+}
+
+func TestShowTags_Directory(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-showtags-dir-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	err = ShowTags(tmpDir)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot show tags for directory")
+}
+
+func TestSetTags(t *testing.T) {
+	tests := []struct {
+		name         string
+		fileName     string
+		newTags      []string
+		expectedName string
+	}{
+		{
+			name:         "add tags to file without tags",
+			fileName:     "20250903T083109--test-file.pdf",
+			newTags:      []string{"tag1", "tag2"},
+			expectedName: "20250903T083109--test-file__tag1_tag2.pdf",
+		},
+		{
+			name:         "replace existing tags",
+			fileName:     "20250903T083109--test-file__old1_old2.pdf",
+			newTags:      []string{"new1", "new2"},
+			expectedName: "20250903T083109--test-file__new1_new2.pdf",
+		},
+		{
+			name:         "remove all tags",
+			fileName:     "20250903T083109--test-file__tag1_tag2.pdf",
+			newTags:      []string{},
+			expectedName: "20250903T083109--test-file.pdf",
+		},
+		{
+			name:         "tags are sorted",
+			fileName:     "20250903T083109--test-file.pdf",
+			newTags:      []string{"zebra", "apple", "banana"},
+			expectedName: "20250903T083109--test-file__apple_banana_zebra.pdf",
+		},
+		{
+			name:         "no change when tags are same",
+			fileName:     "20250903T083109--test-file__tag1_tag2.pdf",
+			newTags:      []string{"tag1", "tag2"},
+			expectedName: "20250903T083109--test-file__tag1_tag2.pdf",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create temporary directory
+			tmpDir, err := os.MkdirTemp("", "parakeet-settags-*")
+			require.NoError(t, err)
+			defer os.RemoveAll(tmpDir)
+
+			// Create test file
+			filePath := filepath.Join(tmpDir, tt.fileName)
+			err = os.WriteFile(filePath, []byte("test content"), 0644)
+			require.NoError(t, err)
+
+			// Set tags
+			err = SetTags(filePath, tt.newTags)
+			require.NoError(t, err)
+
+			// Verify new file exists
+			newFilePath := filepath.Join(tmpDir, tt.expectedName)
+			_, err = os.Stat(newFilePath)
+			assert.NoError(t, err, "New file should exist: %s", tt.expectedName)
+
+			// Verify content is preserved
+			content, err := os.ReadFile(newFilePath)
+			require.NoError(t, err)
+			assert.Equal(t, "test content", string(content))
+
+			// Verify old file doesn't exist (if name changed)
+			if tt.fileName != tt.expectedName {
+				_, err = os.Stat(filePath)
+				assert.True(t, os.IsNotExist(err), "Old file should not exist")
+			}
+		})
+	}
+}
+
+func TestSetTags_NonExistentFile(t *testing.T) {
+	err := SetTags("/non/existent/file.pdf", []string{"tag1"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not exist")
+}
+
+func TestSetTags_InvalidFormat(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-settags-invalid-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create file with invalid format
+	filePath := filepath.Join(tmpDir, "invalid-format.pdf")
+	err = os.WriteFile(filePath, []byte("test"), 0644)
+	require.NoError(t, err)
+
+	err = SetTags(filePath, []string{"tag1"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not in correct format")
+}
+
+func TestSetTags_Directory(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-settags-dir-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	err = SetTags(tmpDir, []string{"tag1"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot set tags for directory")
+}
+
+func TestEditTags_NonInteractive(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-edittags-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create test file
+	fileName := "20250903T083109--test-file__tag1.pdf"
+	filePath := filepath.Join(tmpDir, fileName)
+	err = os.WriteFile(filePath, []byte("test content"), 0644)
+	require.NoError(t, err)
+
+	// Test non-interactive mode (should do nothing)
+	opts := TagOptions{
+		Interactive: false,
+	}
+
+	err = EditTags(filePath, opts)
+	assert.NoError(t, err)
+
+	// Verify file still exists with same name
+	_, err = os.Stat(filePath)
+	assert.NoError(t, err)
+}
+
+func TestEditTags_NonExistentFile(t *testing.T) {
+	opts := TagOptions{
+		Interactive: true,
+	}
+
+	err := EditTags("/non/existent/file.pdf", opts)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not exist")
+}
+
+func TestEditTags_InvalidFormat(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-edittags-invalid-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create file with invalid format
+	filePath := filepath.Join(tmpDir, "invalid-format.pdf")
+	err = os.WriteFile(filePath, []byte("test"), 0644)
+	require.NoError(t, err)
+
+	opts := TagOptions{
+		Interactive: true,
+	}
+
+	err = EditTags(filePath, opts)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not in correct format")
+}
+
+func TestIntegration_TagWorkflow(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-tag-workflow-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Step 1: Create a file without tags
+	fileName := "20250903T083109--document.pdf"
+	filePath := filepath.Join(tmpDir, fileName)
+	err = os.WriteFile(filePath, []byte("important document"), 0644)
+	require.NoError(t, err)
+
+	// Step 2: Add tags
+	err = SetTags(filePath, []string{"work", "important"})
+	require.NoError(t, err)
+
+	// Step 3: Verify new file exists
+	newFileName := "20250903T083109--document__important_work.pdf"
+	newFilePath := filepath.Join(tmpDir, newFileName)
+	_, err = os.Stat(newFilePath)
+	assert.NoError(t, err)
+
+	// Step 4: Modify tags
+	err = SetTags(newFilePath, []string{"work", "urgent", "review"})
+	require.NoError(t, err)
+
+	// Step 5: Verify final file
+	finalFileName := "20250903T083109--document__review_urgent_work.pdf"
+	finalFilePath := filepath.Join(tmpDir, finalFileName)
+	_, err = os.Stat(finalFilePath)
+	assert.NoError(t, err)
+
+	// Verify content is preserved
+	content, err := os.ReadFile(finalFilePath)
+	require.NoError(t, err)
+	assert.Equal(t, "important document", string(content))
+
+	// Step 6: Remove all tags
+	err = SetTags(finalFilePath, []string{})
+	require.NoError(t, err)
+
+	// Step 7: Verify back to no tags
+	noTagsPath := filepath.Join(tmpDir, "20250903T083109--document.pdf")
+	_, err = os.Stat(noTagsPath)
+	assert.NoError(t, err)
+}
