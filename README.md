@@ -23,8 +23,3 @@ go run . tag {file名}
 ```
 go install github.com/kijimaD/parakeet@main
 ```
-
-
-- IDがかぶらないようにする(バリデーションも追加する)
-- 一覧のmarkdown表を標準出力できるようにする
-  - ID、タイトル、タグを出す

@@ -82,6 +82,31 @@ func main() {
 				},
 			},
 			{
+				Name:  "md",
+				Usage: "ディレクトリ内のファイル一覧をMarkdown表形式で出力する",
+				Flags: []cli.Flag{
+					&cli.StringSliceFlag{
+						Name:    "ext",
+						Aliases: []string{"e"},
+						Usage:   "対象拡張子（カンマ区切り、例: pdf,txt,md）",
+					},
+				},
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					// 対象ディレクトリを取得（デフォルトはカレントディレクトリ）
+					targetDir := "."
+					if cmd.Args().Len() > 0 {
+						targetDir = cmd.Args().Get(0)
+					}
+
+					opts := MarkdownOptions{
+						Writer:     os.Stdout,
+						Extensions: cmd.StringSlice("ext"),
+					}
+
+					return GenerateMarkdownTable(targetDir, opts)
+				},
+			},
+			{
 				Name:      "tag",
 				Usage:     "ファイルのタグをインタラクティブに編集する",
 				ArgsUsage: "<file_path>",
