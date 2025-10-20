@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -368,4 +369,102 @@ func TestGenerateFileNames_ActualRename(t *testing.T) {
 	output := buf.String()
 	assert.Contains(t, output, "Processed: 3", "Should process 3 files")
 	assert.Contains(t, output, "Skipped: 0", "Should skip 0 files")
+}
+
+func TestGenerateFileNames_NoDuplicateTimestamps(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-test-no-dup-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create many test files to increase chance of timestamp collision
+	numFiles := 10
+	for i := 0; i < numFiles; i++ {
+		fileName := fmt.Sprintf("file%d.txt", i)
+		filePath := filepath.Join(tmpDir, fileName)
+		err := os.WriteFile(filePath, []byte("test content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Perform rename
+	buf := &bytes.Buffer{}
+	opts := RenameOptions{
+		Writer:     buf,
+		Extensions: []string{"txt"},
+	}
+
+	err = GenerateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+
+	// Collect all timestamps
+	timestamps, err := CollectExistingTimestamps(tmpDir)
+	require.NoError(t, err)
+
+	// Verify no duplicates
+	assert.Equal(t, numFiles, len(timestamps), "All timestamps should be unique")
+
+	// Verify all files were processed
+	entries, err := os.ReadDir(tmpDir)
+	require.NoError(t, err)
+	assert.Len(t, entries, numFiles)
+
+	for _, entry := range entries {
+		assert.True(t, IsFormatted(entry.Name()), "File should be formatted")
+	}
+}
+
+func TestGenerateFileNames_WithExistingFormattedFiles(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-test-existing-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create some already formatted files
+	existingFiles := []string{
+		"20250903T083109--existing1.txt",
+		"20250903T083110--existing2.pdf",
+	}
+
+	for _, name := range existingFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("existing content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Create unformatted files
+	newFiles := []string{
+		"newfile1.txt",
+		"newfile2.pdf",
+	}
+
+	for _, name := range newFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("new content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Perform rename
+	buf := &bytes.Buffer{}
+	opts := RenameOptions{
+		Writer:     buf,
+		Extensions: []string{"txt", "pdf"},
+	}
+
+	err = GenerateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+
+	// Collect all timestamps
+	timestamps, err := CollectExistingTimestamps(tmpDir)
+	require.NoError(t, err)
+
+	// Verify no duplicates - should have 4 unique timestamps
+	assert.Equal(t, 4, len(timestamps), "All timestamps should be unique")
+
+	// Verify existing files are not renamed
+	for _, existingFile := range existingFiles {
+		_, err := os.Stat(filepath.Join(tmpDir, existingFile))
+		assert.NoError(t, err, "Existing file should still exist: %s", existingFile)
+	}
 }

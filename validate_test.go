@@ -25,8 +25,8 @@ func TestValidateFileNames(t *testing.T) {
 			name: "all files valid",
 			setupFiles: []string{
 				"20250903T083109--TCPIP入門__network_infra.pdf",
-				"20250903T083109--sample.txt",
-				"20250903T083109--document__important.doc",
+				"20250903T083110--sample.txt",
+				"20250903T083111--document__important.doc",
 			},
 			expectedValid:     3,
 			expectedInvalid:   0,
@@ -323,8 +323,8 @@ func TestValidateFileNames_AllValidOutput(t *testing.T) {
 	// Create only valid files
 	validFiles := []string{
 		"20250903T083109--document.pdf",
-		"20250903T083109--image.jpg",
-		"20250903T083109--notes__tag1_tag2.md",
+		"20250903T083110--image.jpg",
+		"20250903T083111--notes__tag1_tag2.md",
 	}
 
 	for _, name := range validFiles {
@@ -397,4 +397,95 @@ func TestValidateFileNames_CaseInsensitiveExtension(t *testing.T) {
 	// Check that invalid.TXT is caught
 	output := buf.String()
 	assert.Contains(t, output, "invalid.TXT", "Should find invalid TXT file")
+}
+
+func TestValidateFileNames_WithDuplicateTimestamps(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-validate-duplicate-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create files with duplicate timestamps
+	testFiles := []string{
+		"20250903T083109--file1.txt",
+		"20250903T083109--file2.pdf",  // 同じタイムスタンプ
+		"20250903T083110--file3.doc",
+		"20250903T083110--file4.jpg",  // 同じタイムスタンプ
+		"20250903T083111--file5.md",   // ユニーク
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Run validation
+	buf := &bytes.Buffer{}
+	opts := ValidateOptions{
+		Writer:     buf,
+		Extensions: nil,
+	}
+
+	result, err := ValidateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Check result
+	assert.Equal(t, 5, result.TotalFiles)
+	assert.Equal(t, 5, result.ValidFiles)
+	assert.Equal(t, 0, len(result.InvalidFiles))
+	assert.True(t, result.HasDuplicates, "Should detect duplicates")
+	assert.Equal(t, 4, len(result.DuplicateFiles), "Should have 4 duplicate files")
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "⚠", "Should show warning for duplicates")
+	assert.Contains(t, output, "duplicate timestamp", "Should mention duplicate timestamps")
+	assert.Contains(t, output, "Duplicates: 4", "Should show duplicate count")
+}
+
+func TestValidateFileNames_NoDuplicates(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-validate-nodup-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create files with unique timestamps
+	testFiles := []string{
+		"20250903T083109--file1.txt",
+		"20250903T083110--file2.pdf",
+		"20250903T083111--file3.doc",
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("content"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Run validation
+	buf := &bytes.Buffer{}
+	opts := ValidateOptions{
+		Writer:     buf,
+		Extensions: nil,
+	}
+
+	result, err := ValidateFileNames(tmpDir, opts)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Check result
+	assert.Equal(t, 3, result.TotalFiles)
+	assert.Equal(t, 3, result.ValidFiles)
+	assert.Equal(t, 0, len(result.InvalidFiles))
+	assert.False(t, result.HasDuplicates, "Should not detect duplicates")
+	assert.Equal(t, 0, len(result.DuplicateFiles), "Should have 0 duplicate files")
+
+	// Check output
+	output := buf.String()
+	assert.Contains(t, output, "All files are properly formatted", "Should show success message")
+	assert.NotContains(t, output, "⚠", "Should not show warnings")
 }

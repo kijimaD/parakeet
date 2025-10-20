@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,6 +20,56 @@ type FileNameComponents struct {
 // フォーマット: YYYYMMDDTHHMMSS
 func GenerateTimestamp() string {
 	return time.Now().Format("20060102T150405")
+}
+
+// GenerateUniqueTimestamp は既存のタイムスタンプと重複しないタイムスタンプを生成する
+// existingTimestamps に既存のタイムスタンプのリストを渡す
+func GenerateUniqueTimestamp(existingTimestamps map[string]bool) string {
+	timestamp := GenerateTimestamp()
+
+	// 重複がなければそのまま返す
+	if !existingTimestamps[timestamp] {
+		return timestamp
+	}
+
+	// 重複する場合は、タイムスタンプをパースして1秒ずつ進める
+	t, err := time.Parse("20060102T150405", timestamp)
+	if err != nil {
+		// パースに失敗した場合は現在時刻を返す
+		return timestamp
+	}
+
+	// 重複しないタイムスタンプが見つかるまで1秒ずつ進める
+	for {
+		t = t.Add(1 * time.Second)
+		newTimestamp := t.Format("20060102T150405")
+		if !existingTimestamps[newTimestamp] {
+			return newTimestamp
+		}
+	}
+}
+
+// CollectExistingTimestamps はディレクトリ内のフォーマット済みファイルからタイムスタンプを収集する
+func CollectExistingTimestamps(dirPath string) (map[string]bool, error) {
+	timestamps := make(map[string]bool)
+
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// フォーマット済みファイルからタイムスタンプを抽出
+		if components, err := ParseFileName(entry.Name()); err == nil {
+			timestamps[components.Timestamp] = true
+		}
+	}
+
+	return timestamps, nil
 }
 
 // FormatFileName は構成要素からフォーマット済みファイル名を生成する

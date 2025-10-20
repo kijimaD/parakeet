@@ -27,7 +27,12 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 		return fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	timestamp := GenerateTimestamp()
+	// 既存のタイムスタンプを収集
+	existingTimestamps, err := CollectExistingTimestamps(targetDir)
+	if err != nil {
+		return fmt.Errorf("failed to collect existing timestamps: %w", err)
+	}
+
 	processedCount := 0
 	skippedCount := 0
 
@@ -58,6 +63,9 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 			ext = ext[1:] // 先頭のドットを削除
 		}
 
+		// 重複しないタイムスタンプを生成
+		timestamp := GenerateUniqueTimestamp(existingTimestamps)
+
 		// タイムスタンプ付きの新しいファイル名を作成
 		components := FileNameComponents{
 			Timestamp: timestamp,
@@ -68,6 +76,9 @@ func GenerateFileNames(targetDir string, opts RenameOptions) error {
 
 		newName := components.FormatFileName()
 		newPath := filepath.Join(targetDir, newName)
+
+		// 使用したタイムスタンプを記録
+		existingTimestamps[timestamp] = true
 
 		// 新しいファイル名がすでに存在するかチェック
 		if _, err := os.Stat(newPath); err == nil {

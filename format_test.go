@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -315,4 +317,93 @@ func TestMatchesExtensions(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestGenerateUniqueTimestamp(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name                string
+		existingTimestamps  map[string]bool
+		shouldBeDifferent   bool
+	}{
+		{
+			name:               "no existing timestamps",
+			existingTimestamps: map[string]bool{},
+			shouldBeDifferent:  false,
+		},
+		{
+			name: "existing timestamp matches current time",
+			existingTimestamps: map[string]bool{
+				GenerateTimestamp(): true,
+			},
+			shouldBeDifferent: true,
+		},
+		{
+			name: "multiple existing timestamps",
+			existingTimestamps: map[string]bool{
+				"20250903T083109": true,
+				"20250903T083110": true,
+				"20250903T083111": true,
+			},
+			shouldBeDifferent: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := GenerateUniqueTimestamp(tt.existingTimestamps)
+
+			// 生成されたタイムスタンプが既存のものと重複しないことを確認
+			assert.False(t, tt.existingTimestamps[result], "Generated timestamp should not exist in existing timestamps")
+
+			// タイムスタンプのフォーマットを確認
+			assert.Len(t, result, 15, "Timestamp should be 15 characters")
+		})
+	}
+}
+
+func TestCollectExistingTimestamps(t *testing.T) {
+	t.Parallel()
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-collect-timestamps-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Create test files
+	testFiles := []string{
+		"20250903T083109--file1.txt",
+		"20250903T083110--file2.pdf",
+		"20250903T083111--file3.doc",
+		"invalid-file.txt", // このファイルは無視される
+	}
+
+	for _, name := range testFiles {
+		filePath := filepath.Join(tmpDir, name)
+		err := os.WriteFile(filePath, []byte("test"), 0644)
+		require.NoError(t, err)
+	}
+
+	// Collect timestamps
+	timestamps, err := CollectExistingTimestamps(tmpDir)
+	require.NoError(t, err)
+
+	// Verify results
+	assert.Equal(t, 3, len(timestamps), "Should collect 3 timestamps")
+	assert.True(t, timestamps["20250903T083109"])
+	assert.True(t, timestamps["20250903T083110"])
+	assert.True(t, timestamps["20250903T083111"])
+	assert.False(t, timestamps["invalid-file"])
+}
+
+func TestCollectExistingTimestamps_EmptyDirectory(t *testing.T) {
+	t.Parallel()
+	// Create temporary empty directory
+	tmpDir, err := os.MkdirTemp("", "parakeet-collect-empty-*")
+	require.NoError(t, err)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	timestamps, err := CollectExistingTimestamps(tmpDir)
+	require.NoError(t, err)
+	assert.Empty(t, timestamps, "Should return empty map for empty directory")
 }

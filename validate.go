@@ -15,9 +15,11 @@ type ValidateOptions struct {
 
 // ValidateResult はバリデーション結果を表す
 type ValidateResult struct {
-	TotalFiles   int      // 総ファイル数
-	ValidFiles   int      // 有効なファイル数
-	InvalidFiles []string // 無効なファイル名のリスト
+	TotalFiles       int      // 総ファイル数
+	ValidFiles       int      // 有効なファイル数
+	InvalidFiles     []string // 無効なファイル名のリスト
+	DuplicateFiles   []string // 重複するタイムスタンプを持つファイルのリスト
+	HasDuplicates    bool     // 重複があるかどうか
 }
 
 // ValidateFileNames はディレクトリ内のファイル名をバリデーションする
@@ -34,8 +36,12 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 	}
 
 	result := &ValidateResult{
-		InvalidFiles: []string{},
+		InvalidFiles:   []string{},
+		DuplicateFiles: []string{},
 	}
+
+	// タイムスタンプの出現回数を記録
+	timestampMap := make(map[string][]string)
 
 	for _, entry := range entries {
 		// ディレクトリはスキップ
@@ -55,9 +61,25 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 		// ファイル名が正しいフォーマットかチェック
 		if IsFormatted(fileName) {
 			result.ValidFiles++
+
+			// タイムスタンプを抽出して重複チェック
+			if components, err := ParseFileName(fileName); err == nil {
+				timestampMap[components.Timestamp] = append(timestampMap[components.Timestamp], fileName)
+			}
 		} else {
 			result.InvalidFiles = append(result.InvalidFiles, fileName)
 			_, _ = fmt.Fprintf(opts.Writer, "✗ %s (invalid format)\n", fileName)
+		}
+	}
+
+	// 重複チェック
+	for timestamp, files := range timestampMap {
+		if len(files) > 1 {
+			result.HasDuplicates = true
+			for _, file := range files {
+				result.DuplicateFiles = append(result.DuplicateFiles, file)
+				_, _ = fmt.Fprintf(opts.Writer, "⚠ %s (duplicate timestamp: %s)\n", file, timestamp)
+			}
 		}
 	}
 
@@ -66,11 +88,17 @@ func ValidateFileNames(targetDir string, opts ValidateOptions) (*ValidateResult,
 	_, _ = fmt.Fprintf(opts.Writer, "  Total files: %d\n", result.TotalFiles)
 	_, _ = fmt.Fprintf(opts.Writer, "  Valid: %d\n", result.ValidFiles)
 	_, _ = fmt.Fprintf(opts.Writer, "  Invalid: %d\n", len(result.InvalidFiles))
+	_, _ = fmt.Fprintf(opts.Writer, "  Duplicates: %d\n", len(result.DuplicateFiles))
 
-	if len(result.InvalidFiles) == 0 {
+	if len(result.InvalidFiles) == 0 && !result.HasDuplicates {
 		_, _ = fmt.Fprintf(opts.Writer, "\n✓ All files are properly formatted!\n")
 	} else {
-		_, _ = fmt.Fprintf(opts.Writer, "\n✗ Some files have invalid format.\n")
+		if len(result.InvalidFiles) > 0 {
+			_, _ = fmt.Fprintf(opts.Writer, "\n✗ Some files have invalid format.\n")
+		}
+		if result.HasDuplicates {
+			_, _ = fmt.Fprintf(opts.Writer, "\n⚠ Some files have duplicate timestamps.\n")
+		}
 	}
 
 	return result, nil
