@@ -1,0 +1,35 @@
+[[tag]]
+key = "infra"
+desc = "インフラ関連"
+
+[[tag]]
+key = "network"
+desc = "ネットワーク関連"
+
+[[tag]]
+key = "security"
+desc = "セキュリティ関連"
+
+[[tag]]
+key = "database"
+desc = "データベース関連"
+
+[[tag]]
+key = "frontend"
+desc = "フロントエンド関連"
+
+[[tag]]
+key = "backend"
+desc = "バックエンド関連"
+
+[[tag]]
+key = "devops"
+desc = "DevOps関連"
+
+[[tag]]
+key = "testing"
+desc = "テスト関連"
+
+[[tag]]
+key = "documentation"
+desc = "ドキュメント関連"

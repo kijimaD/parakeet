@@ -19,3 +19,7 @@ go run . validate . --ext pdf
 # タグ編集
 go run . tag {file名}
 ```
+
+```
+go install github.com/kijimaD/parakeet@main
+```

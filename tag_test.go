@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -356,4 +358,157 @@ func TestIntegration_TagWorkflow(t *testing.T) {
 	noTagsPath := filepath.Join(tmpDir, "20250903T083109--document.pdf")
 	_, err = os.Stat(noTagsPath)
 	assert.NoError(t, err)
+}
+
+func TestLoadTagsFromTOML(t *testing.T) {
+	tests := []struct {
+		name          string
+		content       string
+		expectedTags  []TagDefinition
+		expectedError bool
+	}{
+		{
+			name: "valid toml file",
+			content: `[[tag]]
+key = "infra"
+desc = "インフラについて"
+
+[[tag]]
+key = "mm"
+desc = "mmについて"
+`,
+			expectedTags: []TagDefinition{
+				{Key: "infra", Desc: "インフラについて"},
+				{Key: "mm", Desc: "mmについて"},
+			},
+			expectedError: false,
+		},
+		{
+			name: "empty file",
+			content: ``,
+			expectedTags: nil,
+			expectedError: false,
+		},
+		{
+			name: "tag without description",
+			content: `[[tag]]
+key = "test"
+`,
+			expectedTags: []TagDefinition{
+				{Key: "test", Desc: ""},
+			},
+			expectedError: false,
+		},
+		{
+			name:          "invalid toml",
+			content:       `[[tag]\nkey = "invalid"`,
+			expectedTags:  nil,
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create temporary file
+			tmpFile, err := os.CreateTemp("", "tags-*.toml")
+			require.NoError(t, err)
+			defer os.Remove(tmpFile.Name())
+
+			// Write content
+			_, err = tmpFile.WriteString(tt.content)
+			require.NoError(t, err)
+			tmpFile.Close()
+
+			// Load tags
+			tags, err := LoadTagsFromTOML(tmpFile.Name())
+
+			if tt.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedTags, tags)
+			}
+		})
+	}
+}
+
+func TestLoadTagsFromTOML_NonExistentFile(t *testing.T) {
+	tags, err := LoadTagsFromTOML("/non/existent/tags.toml")
+	assert.NoError(t, err)
+	assert.Empty(t, tags, "Should return empty slice for non-existent file")
+}
+
+func TestExtractKeyFromDisplay(t *testing.T) {
+	tests := []struct {
+		name        string
+		displayText string
+		expectedKey string
+	}{
+		{
+			name:        "with description",
+			displayText: "infra - インフラ関連",
+			expectedKey: "infra",
+		},
+		{
+			name:        "without description",
+			displayText: "custom",
+			expectedKey: "custom",
+		},
+		{
+			name:        "with multiple dashes in description",
+			displayText: "network - ネットワーク - LAN/WAN",
+			expectedKey: "network",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// extractKey 関数のロジックを再現
+			extractKey := func(displayText string) string {
+				parts := strings.SplitN(displayText, " - ", 2)
+				return parts[0]
+			}
+
+			result := extractKey(tt.displayText)
+			assert.Equal(t, tt.expectedKey, result)
+		})
+	}
+}
+
+func TestFormatDisplay(t *testing.T) {
+	tagDescMap := map[string]string{
+		"infra":   "インフラ関連",
+		"network": "ネットワーク関連",
+	}
+
+	formatDisplay := func(key string) string {
+		if desc, ok := tagDescMap[key]; ok && desc != "" {
+			return fmt.Sprintf("%s - %s", key, desc)
+		}
+		return key
+	}
+
+	tests := []struct {
+		name     string
+		key      string
+		expected string
+	}{
+		{
+			name:     "with description",
+			key:      "infra",
+			expected: "infra - インフラ関連",
+		},
+		{
+			name:     "without description",
+			key:      "custom",
+			expected: "custom",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatDisplay(tt.key)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

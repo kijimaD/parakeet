@@ -28,7 +28,7 @@ func TestGenerateFileNames(t *testing.T) {
 			},
 			opts: RenameOptions{
 				Writer:     &bytes.Buffer{},
-				Extensions: nil,
+				Extensions: []string{"txt", "pdf", "doc"},
 			},
 			expectError:   false,
 			expectRenamed: 3,
@@ -42,7 +42,7 @@ func TestGenerateFileNames(t *testing.T) {
 			},
 			opts: RenameOptions{
 				Writer:     &bytes.Buffer{},
-				Extensions: nil,
+				Extensions: []string{"txt", "pdf"},
 			},
 			expectError:   false,
 			expectRenamed: 1,
@@ -58,7 +58,7 @@ func TestGenerateFileNames(t *testing.T) {
 			},
 			opts: RenameOptions{
 				Writer:     &bytes.Buffer{},
-				Extensions: nil,
+				Extensions: []string{"jpg", "png", "md", ""},
 			},
 			expectError:   false,
 			expectRenamed: 4,
@@ -124,7 +124,7 @@ func TestGenerateFileNames(t *testing.T) {
 func TestGenerateFileNames_NonExistentDirectory(t *testing.T) {
 	opts := RenameOptions{
 		Writer:     &bytes.Buffer{},
-		Extensions: nil,
+		Extensions: []string{"txt"},
 	}
 
 	err := GenerateFileNames("/non/existent/directory", opts)
@@ -140,7 +140,7 @@ func TestGenerateFileNames_EmptyDirectory(t *testing.T) {
 
 	opts := RenameOptions{
 		Writer:     &bytes.Buffer{},
-		Extensions: nil,
+		Extensions: []string{"txt"},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -170,7 +170,7 @@ func TestGenerateFileNames_SkipsDirectories(t *testing.T) {
 
 	opts := RenameOptions{
 		Writer:     &bytes.Buffer{},
-		Extensions: nil,
+		Extensions: []string{"txt"},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -224,7 +224,7 @@ func TestGenerateFileNames_PreservesExtension(t *testing.T) {
 
 	opts := RenameOptions{
 		Writer:     &bytes.Buffer{},
-		Extensions: nil,
+		Extensions: []string{"pdf", "docx", "jpg", ""},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)
@@ -333,7 +333,7 @@ func TestGenerateFileNames_ActualRename(t *testing.T) {
 	buf := &bytes.Buffer{}
 	opts := RenameOptions{
 		Writer:     buf,
-		Extensions: nil,
+		Extensions: []string{"pdf", "jpg", "txt"},
 	}
 
 	err = GenerateFileNames(tmpDir, opts)

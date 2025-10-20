@@ -53,7 +53,7 @@ func TestIntegration_GenerateAndValidate(t *testing.T) {
 	generateBuf := &bytes.Buffer{}
 	generateOpts := RenameOptions{
 		Writer:     generateBuf,
-		Extensions: nil,
+		Extensions: []string{"pdf", "jpg", "txt", "pptx", "xlsx"},
 	}
 
 	err = GenerateFileNames(tmpDir, generateOpts)
@@ -212,7 +212,7 @@ func TestIntegration_MixedScenario(t *testing.T) {
 	generateBuf := &bytes.Buffer{}
 	generateOpts := RenameOptions{
 		Writer:     generateBuf,
-		Extensions: nil,
+		Extensions: []string{"pdf", "txt", "jpg"},
 	}
 
 	err = GenerateFileNames(tmpDir, generateOpts)

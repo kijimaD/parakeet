@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // TagOptions はタグ編集操作のオプションを表す
@@ -71,6 +72,39 @@ func EditTags(filePath string, opts TagOptions) error {
 	return nil
 }
 
+// TagDefinition はTOMLファイルで定義されるタグの構造
+type TagDefinition struct {
+	Key  string `toml:"key"`  // タグのキー
+	Desc string `toml:"desc"` // タグの説明
+}
+
+// TagConfig はTOMLファイル全体の構造
+type TagConfig struct {
+	Tag []TagDefinition `toml:"tag"`
+}
+
+// LoadTagsFromTOML はTOMLファイルからタグ定義を読み込む
+func LoadTagsFromTOML(filePath string) ([]TagDefinition, error) {
+	// ファイルが存在しない場合は空のスライスを返す
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return []TagDefinition{}, nil
+	}
+
+	// ファイルを読み込む
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read tags file: %w", err)
+	}
+
+	// TOMLをパース
+	var config TagConfig
+	if err := toml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse tags file: %w", err)
+	}
+
+	return config.Tag, nil
+}
+
 // promptForTags はインタラクティブにタグを選択・編集する
 func promptForTags(currentTags []string) ([]string, error) {
 	// 既存のタグをすべて選択状態にする
@@ -80,23 +114,39 @@ func promptForTags(currentTags []string) ([]string, error) {
 		copy(selectedTags, currentTags)
 	}
 
-	// よく使われるタグの候補リスト
-	commonTags := []string{
-		"work",
-		"personal",
-		"important",
-		"urgent",
-		"draft",
-		"final",
-		"review",
-		"archive",
-		"temp",
-		"backup",
-		"network",
-		"infra",
-		"dev",
-		"prod",
-		"test",
+	// TOMLファイルからタグ定義を読み込む
+	// デフォルトは ./tags.toml
+	tagsFilePath := "tags.toml"
+	tagDefs, err := LoadTagsFromTOML(tagsFilePath)
+	if err != nil {
+		// エラーがあってもデフォルトのタグリストで続行
+		tagDefs = []TagDefinition{}
+	}
+
+	// タグの候補リストを作成
+	// key -> description のマップを作成
+	tagDescMap := make(map[string]string)
+	commonTags := make([]string, 0)
+	for _, tagDef := range tagDefs {
+		commonTags = append(commonTags, tagDef.Key)
+		if tagDef.Desc != "" {
+			tagDescMap[tagDef.Key] = tagDef.Desc
+		}
+	}
+
+	// 表示用文字列からキーを抽出するヘルパー関数
+	extractKey := func(displayText string) string {
+		// "key - description" の形式から key を抽出
+		parts := strings.SplitN(displayText, " - ", 2)
+		return parts[0]
+	}
+
+	// キーから表示用文字列を作成するヘルパー関数
+	formatDisplay := func(key string) string {
+		if desc, ok := tagDescMap[key]; ok && desc != "" {
+			return fmt.Sprintf("%s - %s", key, desc)
+		}
+		return key
 	}
 
 	// 既存のタグと候補を統合（重複を除く）
@@ -106,7 +156,7 @@ func promptForTags(currentTags []string) ([]string, error) {
 	// 既存のタグを優先的に追加
 	for _, tag := range currentTags {
 		if !seenTags[tag] {
-			tagOptions = append(tagOptions, tag)
+			tagOptions = append(tagOptions, formatDisplay(tag))
 			seenTags[tag] = true
 		}
 	}
@@ -114,7 +164,7 @@ func promptForTags(currentTags []string) ([]string, error) {
 	// 候補タグを追加
 	for _, tag := range commonTags {
 		if !seenTags[tag] {
-			tagOptions = append(tagOptions, tag)
+			tagOptions = append(tagOptions, formatDisplay(tag))
 			seenTags[tag] = true
 		}
 	}
@@ -122,12 +172,18 @@ func promptForTags(currentTags []string) ([]string, error) {
 	// カスタムタグ追加オプション
 	tagOptions = append(tagOptions, "[+ Add custom tag]")
 
+	// デフォルト選択を表示形式に変換
+	defaultSelection := make([]string, 0)
+	for _, tag := range selectedTags {
+		defaultSelection = append(defaultSelection, formatDisplay(tag))
+	}
+
 	for {
 		// タグ選択プロンプト
 		prompt := &survey.MultiSelect{
 			Message: "Select tags (space to toggle, enter to confirm):",
 			Options: tagOptions,
-			Default: selectedTags,
+			Default: defaultSelection,
 		}
 
 		var selected []string
@@ -139,11 +195,13 @@ func promptForTags(currentTags []string) ([]string, error) {
 		// カスタムタグ追加が選択されたかチェック
 		addCustom := false
 		finalTags := make([]string, 0)
-		for _, tag := range selected {
-			if tag == "[+ Add custom tag]" {
+		for _, displayTag := range selected {
+			if displayTag == "[+ Add custom tag]" {
 				addCustom = true
 			} else {
-				finalTags = append(finalTags, tag)
+				// 表示用文字列からキーを抽出
+				key := extractKey(displayTag)
+				finalTags = append(finalTags, key)
 			}
 		}
 
@@ -156,10 +214,15 @@ func promptForTags(currentTags []string) ([]string, error) {
 			if customTag != "" {
 				// カスタムタグを追加
 				finalTags = append(finalTags, customTag)
-				// オプションリストに追加
-				tagOptions = append([]string{customTag}, tagOptions...)
-				// 再度選択
+				// オプションリストに追加（表示形式で）
+				tagOptions = append([]string{formatDisplay(customTag)}, tagOptions...)
+				// 再度選択（次のループで defaultSelection に変換される）
 				selectedTags = finalTags
+				// defaultSelection も更新
+				defaultSelection = make([]string, 0)
+				for _, tag := range selectedTags {
+					defaultSelection = append(defaultSelection, formatDisplay(tag))
+				}
 				continue
 			}
 		}

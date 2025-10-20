@@ -26,6 +26,12 @@ func main() {
 					},
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
+					// 拡張子指定は必須
+					extensions := cmd.StringSlice("ext")
+					if len(extensions) == 0 {
+						return fmt.Errorf("--ext flag is required: specify at least one file extension (e.g., --ext pdf --ext txt)")
+					}
+
 					// 対象ディレクトリを取得（デフォルトはカレントディレクトリ）
 					targetDir := "."
 					if cmd.Args().Len() > 0 {
@@ -34,7 +40,7 @@ func main() {
 
 					opts := RenameOptions{
 						Writer:     os.Stdout,
-						Extensions: cmd.StringSlice("ext"),
+						Extensions: extensions,
 					}
 
 					return GenerateFileNames(targetDir, opts)
